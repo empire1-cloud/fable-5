@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en" data-palette="cyan" data-texture="graph">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FABLE-5 · System Blueprint · REV 2.0</title>
+<meta name="description" content="FABLE-5 / Autonomous Company Replication System — REV 2.0 architecture blueprint. Sheets 1–5: Value Pipeline, Control Plane, Evidence State Machine, Company Genome &amp; Replication, Capital Allocation.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230d1b2e'/%3E%3Crect x='3' y='3' width='10' height='10' fill='none' stroke='%237fd4ff' stroke-width='1.5'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/blueprint.css">
+<script src="js/drafting-room.js" defer></script>
+</head>
+<body>
+
+<main class="page">
+
+<!-- ════════════════ MASTER TITLE ════════════════ -->
+<section class="sheet">
+  <div class="masthead">
+    <div>
+      <div class="m-eyebrow">SPEC · REV 2.0 · WE EVOLVE, NEVER DELETE</div>
+      <h1 class="m-title">FABLE-5 <span class="m-slash">/</span> Autonomous Company Replication System</h1>
+      <p class="m-sub">REV 1.0 pipeline preserved as canon. REV 2.0 adds the layers a governed autonomous company must have: strategic selection, an evidence state machine, capital allocation, company genomes, and bounded autonomy under founder control.</p>
+    </div>
+    <div class="m-meta">
+      <div>SHEETS 1–5</div>
+      <div>DRAWN — POLSIA / VIKTOR</div>
+      <div>CANON — PRESERVED</div>
+    </div>
+  </div>
+  <div class="audit-grid">
+    <div class="audit-card">
+      <div class="audit-tag">STRONG · REMAINS CANON</div>
+      <div class="audit-text">The 7-engine pipeline, 10-object ontology, daily + weekly loops, and integrity guarantees A/B/C are preserved verbatim on Sheet 1.</div>
+    </div>
+    <div class="audit-card">
+      <div class="audit-tag">MISSING IN REV 1</div>
+      <div class="audit-text">Opportunity selection, proof-vs-execution distinction, capital allocation, bounded autonomy, and reusable company intelligence had no mechanics.</div>
+    </div>
+    <div class="audit-card">
+      <div class="audit-tag">ADDED IN REV 2</div>
+      <div class="audit-text">Engine 00 (Strategic Intelligence), Engine 08 (Capital Allocation), the Evidence State Machine, Company Genomes, typed gates, and the autonomy ladder.</div>
+    </div>
+  </div>
+  <nav class="sheet-links" aria-label="Sheet index">
+    <a class="sheet-link" href="#sheet-1">SHEET 1 · VALUE PIPELINE</a>
+    <a class="sheet-link" href="#sheet-2">SHEET 2 · CONTROL PLANE</a>
+    <a class="sheet-link" href="#sheet-3">SHEET 3 · EVIDENCE MACHINE</a>
+    <a class="sheet-link" href="#sheet-4">SHEET 4 · GENOME &amp; REPLICATION</a>
+    <a class="sheet-link" href="#sheet-5">SHEET 5 · CAPITAL ALLOCATION</a>
+  </nav>
+</section>
+
+<!-- ════════════════ SHEET 1 · VALUE PIPELINE (PRESERVED) ════════════════ -->
+<section id="sheet-1" class="sheet">
+  <header class="sheet-head sheet-head--flush">
+    <div>
+      <div class="sheet-eyebrow">SHEET 1 / 5 · CANON · REV 1.0 PRESERVED</div>
+      <h2 class="sheet-title">Value Pipeline</h2>
+    </div>
+    <div class="sheet-note">unchanged — REV 2 addenda dashed</div>
+  </header>
+
+  <div class="rule rule--first">
+    <span class="rule-label">L0 · ONTOLOGY</span>
+    <span class="rule-line"></span>
+  </div>
+  <div class="onto-grid">
+    <div class="onto-card"><div class="onto-name">Entity</div><div class="onto-def">any object</div></div>
+    <div class="onto-card"><div class="onto-name">Agent</div><div class="onto-def">worker + KPI</div></div>
+    <div class="onto-card"><div class="onto-name">System</div><div class="onto-def">agent set</div></div>
+    <div class="onto-card"><div class="onto-name">Loop</div><div class="onto-def">compounds value</div></div>
+    <div class="onto-card"><div class="onto-name">Asset</div><div class="onto-def">persistent leverage</div></div>
+    <div class="onto-card"><div class="onto-name">Signal</div><div class="onto-def">decision data</div></div>
+    <div class="onto-card"><div class="onto-name">Metric</div><div class="onto-def">performance</div></div>
+    <div class="onto-card"><div class="onto-name">Constraint</div><div class="onto-def">boundaries</div></div>
+    <div class="onto-card"><div class="onto-name">Resource</div><div class="onto-def">capital · compute</div></div>
+    <div class="onto-card"><div class="onto-name">Canon</div><div class="onto-def">coherence rules</div></div>
+  </div>
+  <div class="onto-grid onto-grid--new">
+    <div class="onto-card onto-card--new"><div class="onto-name">Decision</div><div class="onto-def">question + evidence + confidence</div></div>
+    <div class="onto-card onto-card--new"><div class="onto-name">Receipt</div><div class="onto-def">proof of execution</div></div>
+    <div class="onto-card onto-card--new"><div class="onto-name">Mission</div><div class="onto-def">ranked unit of work</div></div>
+    <div class="onto-card onto-card--new"><div class="onto-name">Genome</div><div class="onto-def">reusable company blueprint</div></div>
+    <div class="onto-card onto-card--new"><div class="onto-name">Market Node</div><div class="onto-def">genome × geography</div></div>
+    <div class="onto-card onto-card--new"><div class="onto-name">Primitive</div><div class="onto-def">proven reusable workflow</div></div>
+    <div class="onto-card onto-card--new"><div class="onto-name">Intent Token</div><div class="onto-def">scoped spend authority</div></div>
+    <div class="onto-card onto-card--new"><div class="onto-name">Neg. Intelligence</div><div class="onto-def">preserved failure learning</div></div>
+  </div>
+  <div class="caption">DASHED = REV 2 ADDITIONS · EACH EXISTS BECAUSE A CONTROL-PLANE MECHANIC REQUIRES IT AS A FIRST-CLASS OBJECT</div>
+
+  <div class="rule">
+    <span class="rule-label">L1 · SYSTEM — THE VALUE PIPELINE</span>
+    <span class="rule-line"></span>
+    <span class="rule-note">REV 2: engines 00 + 08 govern the pipeline — <a href="#sheet-2">Sheet 2</a> · <a href="#sheet-5">Sheet 5</a></span>
+  </div>
+  <div class="pipeline">
+    <div class="pipe-cell">
+      <div class="pipe-card">
+        <div class="pipe-num">01</div>
+        <div class="pipe-name">Market Intelligence</div>
+        <div class="pipe-desc">Scans global markets, languages, sectors for exploitable asymmetries.</div>
+        <div class="pipe-out">OUT → ranked opportunity maps</div>
+        <div class="pipe-gate">NEXT MAY PROCEED WHEN → Engine 00 authorizes an evidence-graded opportunity</div>
+      </div>
+      <div class="flow-arrow"><span>▶</span></div>
+    </div>
+    <div class="pipe-cell">
+      <div class="pipe-card">
+        <div class="pipe-num">02</div>
+        <div class="pipe-name">Product &amp; Offer</div>
+        <div class="pipe-desc">Designs solutions, pricing, positioning, delivery models.</div>
+        <div class="pipe-out">OUT → specs · validation plans</div>
+        <div class="pipe-gate">NEXT MAY PROCEED WHEN → willingness-to-pay evidence RECEIPTED</div>
+      </div>
+      <div class="flow-arrow"><span>▶</span></div>
+    </div>
+    <div class="pipe-cell">
+      <div class="pipe-card">
+        <div class="pipe-num">03</div>
+        <div class="pipe-name">Asset Factory</div>
+        <div class="pipe-desc">Manufactures funnels, content, automations, interfaces.</div>
+        <div class="pipe-out">OUT → deployable artifacts</div>
+        <div class="pipe-gate">NEXT MAY PROCEED WHEN → artifacts pass VERIFICATION checks</div>
+      </div>
+      <div class="flow-arrow"><span>▶</span></div>
+    </div>
+    <div class="pipe-cell">
+      <div class="pipe-card">
+        <div class="pipe-num">04</div>
+        <div class="pipe-name">Growth &amp; Distribution</div>
+        <div class="pipe-desc">Deploys assets across global channels and partners.</div>
+        <div class="pipe-out">OUT → traffic · leads · distribution evidence</div>
+        <div class="pipe-gate">NEXT MAY PROCEED WHEN → distribution evidence MEASURED vs typed gate</div>
+      </div>
+      <div class="flow-arrow"><span>▶</span></div>
+    </div>
+    <div class="pipe-cell">
+      <div class="pipe-card">
+        <div class="pipe-num">05</div>
+        <div class="pipe-name">Monetization &amp; Finance</div>
+        <div class="pipe-desc">Tracks unit economics; routes profit to reinvestment.</div>
+        <div class="pipe-out">OUT → scale / iterate / pause / kill</div>
+        <div class="pipe-gate">NEXT MAY PROCEED WHEN → gate verdict recorded + LEARNED</div>
+      </div>
+      <div class="flow-arrow"><span>▶</span></div>
+    </div>
+    <div class="pipe-cell">
+      <div class="pipe-card">
+        <div class="pipe-num">06</div>
+        <div class="pipe-name">Global Scaling</div>
+        <div class="pipe-desc">Replicates validated genomes into new markets and verticals.</div>
+        <div class="pipe-out">OUT → market-node deployments</div>
+        <div class="pipe-gate">NEXT MAY PROCEED WHEN → genome reaches REPLICATION-READY</div>
+      </div>
+    </div>
+  </div>
+  <div class="gov-bar">
+    <div class="gov-label">07 · GOVERNANCE · MEMORY · VERIFICATION</div>
+    <div class="gov-text">Substrate beneath all engines. REV 2 elevates Verification to a peer duty: receipts, artifact validation, evidence grading, contradiction detection. Full machine on <a href="#sheet-3">Sheet 3</a>.</div>
+    <div class="gov-out">OUT → canon · playbooks · verified evidence</div>
+  </div>
+</section>
+
+<!-- ════════════════ SHEET 2 · AUTONOMOUS CONTROL PLANE ════════════════ -->
+<section id="sheet-2" class="sheet">
+  <header class="sheet-head">
+    <div>
+      <div class="sheet-eyebrow">SHEET 2 / 5 · NEW IN REV 2.0 · ENGINE 00</div>
+      <h2 class="sheet-title">Autonomous Control Plane</h2>
+    </div>
+    <div class="sheet-note">what deserves action · who may act · under what authority</div>
+  </header>
+
+  <div class="cp-grid">
+    <div class="cp-left">
+      <div class="cp-flow">
+        <div class="cp-row">
+          <div class="cp-name">SIGNALS</div>
+          <div class="cp-note">Market data, customer pain, channel telemetry, node KPIs, memory recall — graded by source reliability and recency.</div>
+          <div class="cp-owner">ENGINE 01 + 07</div>
+        </div>
+        <div class="cp-arrow" aria-hidden="true"><span>▼</span></div>
+        <div class="cp-row">
+          <div class="cp-name">OPPORTUNITY GRAPH</div>
+          <div class="cp-note">Ranked candidates: evidence, assumptions, expected value, confidence, dependencies, risk, next experiment. Low-confidence assumptions never rendered as facts.</div>
+          <div class="cp-owner">ENGINE 00</div>
+        </div>
+        <div class="cp-arrow" aria-hidden="true"><span>▼</span></div>
+        <div class="cp-row">
+          <div class="cp-name">DECISION ENGINE</div>
+          <div class="cp-note">Formal decision objects — question, evidence, confidence, upside/downside, reversibility, cost, required authority, next verification event.</div>
+          <div class="cp-owner">ENGINE 00</div>
+        </div>
+        <div class="cp-arrow" aria-hidden="true"><span>▼</span></div>
+        <div class="cp-row">
+          <div class="cp-name">RESOURCE ALLOCATION</div>
+          <div class="cp-note">Compares competing opportunities and live nodes; assigns budgets, reserves, and kill candidates. Cash moves only with a valid Intent Token.</div>
+          <div class="cp-owner">ENGINE 08</div>
+        </div>
+        <div class="cp-arrow" aria-hidden="true"><span>▼</span></div>
+        <div class="cp-row">
+          <div class="cp-name">MISSION QUEUE</div>
+          <div class="cp-note">Ranked missions: objective, owner agent, autonomy level, budget, success criteria, evidence requirement, blocker, escalation condition.</div>
+          <div class="cp-owner">ENGINE 07</div>
+        </div>
+        <div class="cp-arrow" aria-hidden="true"><span>▼</span></div>
+        <div class="cp-row">
+          <div class="cp-name">EXECUTION ENGINES</div>
+          <div class="cp-note">Engines 01–06 execute missions inside their autonomy bounds. Every action emits a receipt or it did not happen.</div>
+          <div class="cp-owner">ENGINES 01–06</div>
+        </div>
+        <div class="cp-arrow" aria-hidden="true"><span>▼</span></div>
+        <div class="cp-row">
+          <div class="cp-name">RECEIPTS</div>
+          <div class="cp-note">Test output, diff, commit, API response, deploy log, metric, screenshot — attached to the mission, graded for quality.</div>
+          <div class="cp-owner">ALL AGENTS</div>
+        </div>
+        <div class="cp-arrow" aria-hidden="true"><span>▼</span></div>
+        <div class="cp-row">
+          <div class="cp-name">VERIFICATION</div>
+          <div class="cp-note">Independent check: artifact validation, deployment checks, KPI validation, contradiction detection, reproducibility.</div>
+          <div class="cp-owner">ENGINE 07</div>
+        </div>
+        <div class="cp-arrow" aria-hidden="true"><span>▼</span></div>
+        <div class="cp-row">
+          <div class="cp-name">ECONOMIC OUTCOME</div>
+          <div class="cp-note">Measured against the node’s typed economic gate — verdict: clone, iterate, pause, or kill.</div>
+          <div class="cp-owner">ENGINE 05 + 08</div>
+        </div>
+        <div class="cp-arrow" aria-hidden="true"><span>▼</span></div>
+        <div class="cp-row">
+          <div class="cp-name">MEMORY / CANON</div>
+          <div class="cp-note">Outcome becomes pattern, anti-pattern, primitive, or negative intelligence. Canon updated. Loop restarts smarter.</div>
+          <div class="cp-owner">ENGINE 07</div>
+        </div>
+      </div>
+      <div class="cp-loopnote">↺ MEMORY / CANON FEEDS BACK INTO SIGNALS — THE LOOP IS CLOSED</div>
+
+      <div class="loop-box">
+        <div class="loop-label">DAILY LOOP · REV 2 · T = 24H</div>
+        <div class="loop-seq">SENSE → INTERPRET → PRIORITIZE → DECIDE → AUTHORIZE → DESIGN → BUILD → DEPLOY → VERIFY → MEASURE → ADAPT → CANONIZE</div>
+        <div class="loop-label loop-label--mid">WEEKLY LOOP · REV 2 · PORTFOLIO CONTROL</div>
+        <div class="loop-seq">REVIEW EVIDENCE → RECALCULATE CONFIDENCE → RANK OPPORTUNITIES → REALLOCATE RESOURCES → SCALE WINNERS → KILL WEAK LOOPS → UPDATE CANON</div>
+        <div class="loop-halt">LOOP HALTS ON: missing receipt · failed verification · expired authority · contradiction · gate breach. MORE ACTIVITY ≠ MORE STRATEGIC PROGRESS — the Mission Queue is ranked, not FIFO.</div>
+      </div>
+    </div>
+
+    <div class="cp-right">
+      <div class="panel-card">
+        <div class="card-label">AUTONOMY LADDER · AUTHORITY IS GRANTED, EXPIRING, REVOCABLE, AUDITED</div>
+        <div class="ladder-row">
+          <span class="ladder-lvl">L0</span>
+          <div><div class="ladder-name">Observe</div><div class="ladder-desc">Read, scan, monitor, summarize. May not act.</div></div>
+        </div>
+        <div class="ladder-row">
+          <span class="ladder-lvl">L1</span>
+          <div><div class="ladder-name">Recommend</div><div class="ladder-desc">Rank, analyze, propose. May not execute.</div></div>
+        </div>
+        <div class="ladder-row">
+          <span class="ladder-lvl">L2</span>
+          <div><div class="ladder-name">Draft</div><div class="ladder-desc">Prepare assets and workflows. May not publish or deploy.</div></div>
+        </div>
+        <div class="ladder-row">
+          <span class="ladder-lvl">L3</span>
+          <div><div class="ladder-name">Execute Reversible</div><div class="ladder-desc">Low-risk, bounded, reversible, non-financial actions.</div></div>
+        </div>
+        <div class="ladder-row">
+          <span class="ladder-lvl">L4</span>
+          <div><div class="ladder-name">Execute In Bounds</div><div class="ladder-desc">Acts inside approved budgets, workflows, environments, policies.</div></div>
+        </div>
+        <div class="boundary">
+          <span class="boundary-line"></span>
+          <span class="boundary-label">FOUNDER APPROVAL BOUNDARY</span>
+          <span class="boundary-line"></span>
+        </div>
+        <div class="ladder-row">
+          <span class="ladder-lvl">L5</span>
+          <div><div class="ladder-name">Founder Escalation</div><div class="ladder-desc">Irreversible changes, financial actions, legal commitments, deletion, public claims, equity, domains, ownership, high-risk compliance.</div></div>
+        </div>
+      </div>
+
+      <div class="token-card">
+        <div class="card-label card-label--accent">FOUNDER-APPROVED INTENT TOKEN · NO VALID TOKEN → NO SPEND</div>
+        <div class="token-rows">
+          <div class="token-row"><span class="token-k">token_id</span><span>FIT-2026-0412</span></div>
+          <div class="token-row"><span class="token-k">approved_by</span><span>founder signature</span></div>
+          <div class="token-row"><span class="token-k">action</span><span>activate ad spend</span></div>
+          <div class="token-row"><span class="token-k">system / vendor</span><span>scoped explicitly</span></div>
+          <div class="token-row"><span class="token-k">max_amount</span><span>hard ceiling</span></div>
+          <div class="token-row"><span class="token-k">currency</span><span>declared</span></div>
+          <div class="token-row"><span class="token-k">expires</span><span>time-bounded</span></div>
+          <div class="token-row"><span class="token-k">recurrence</span><span>one-shot | bounded</span></div>
+          <div class="token-row"><span class="token-k">environment</span><span>prod | sandbox</span></div>
+          <div class="token-row"><span class="token-k">revocation</span><span>instant, audited</span></div>
+        </div>
+        <div class="token-note">Validated at AUTHORIZE. Expired, revoked, over-amount, or out-of-scope token → action blocked + escalation. Every use audit-logged.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════ SHEET 3 · EVIDENCE STATE MACHINE ════════════════ -->
+<section id="sheet-3" class="sheet">
+  <header class="sheet-head">
+    <div>
+      <div class="sheet-eyebrow">SHEET 3 / 5 · NEW IN REV 2.0</div>
+      <h2 class="sheet-title">Evidence State Machine</h2>
+    </div>
+    <div class="sheet-note">anti-fake-progress made structural · no state may be skipped</div>
+  </header>
+
+  <div class="state-strip">
+    <div class="state-chip">PROPOSED</div><span class="strip-arrow">→</span>
+    <div class="state-chip">AUTHORIZED</div><span class="strip-arrow">→</span>
+    <div class="state-chip">EXECUTED</div><span class="strip-arrow">→</span>
+    <div class="state-chip">RECEIPTED</div><span class="strip-arrow">→</span>
+    <div class="state-chip">VERIFIED</div><span class="strip-arrow">→</span>
+    <div class="state-chip">MEASURED</div><span class="strip-arrow">→</span>
+    <div class="state-chip">LEARNED</div><span class="strip-arrow">→</span>
+    <div class="state-chip">CANONIZED</div>
+  </div>
+
+  <div class="esm-box">
+    <div class="esm-scroll">
+      <div class="esm-table">
+        <div class="esm-head">
+          <div class="esm-hcell">STATE</div>
+          <div class="esm-hcell esm-hcell--bl">ENTRY CONDITION</div>
+          <div class="esm-hcell esm-hcell--bl">REQUIRED EVIDENCE</div>
+          <div class="esm-hcell esm-hcell--bl">MAY NOT YET CLAIM</div>
+        </div>
+        <div class="esm-row">
+          <div class="esm-state">PROPOSED</div>
+          <div class="esm-cell">Decision object filed with evidence, assumptions, confidence.</div>
+          <div class="esm-cell">ranked entry in Opportunity Graph</div>
+          <div class="esm-claim">"approved" · "planned"</div>
+        </div>
+        <div class="esm-row">
+          <div class="esm-state">AUTHORIZED</div>
+          <div class="esm-cell">Authority check passed — autonomy level sufficient; Intent Token valid if financial.</div>
+          <div class="esm-cell">authorization record + token ID</div>
+          <div class="esm-claim">"in progress"</div>
+        </div>
+        <div class="esm-row">
+          <div class="esm-state">EXECUTED</div>
+          <div class="esm-cell">Owner agent performed the action within bounds.</div>
+          <div class="esm-cell">execution log</div>
+          <div class="esm-claim">"done" · "launched" · "fixed"</div>
+        </div>
+        <div class="esm-row">
+          <div class="esm-state">RECEIPTED</div>
+          <div class="esm-cell">Receipt attached to the mission.</div>
+          <div class="esm-cell">test output · diff · commit · API response · deploy log</div>
+          <div class="esm-claim">"verified" · "working"</div>
+        </div>
+        <div class="esm-row">
+          <div class="esm-state">VERIFIED</div>
+          <div class="esm-cell">Independent check confirms receipt matches claim; reproducible.</div>
+          <div class="esm-cell">verification record · reproduced check</div>
+          <div class="esm-claim">"successful"</div>
+        </div>
+        <div class="esm-row">
+          <div class="esm-state">MEASURED</div>
+          <div class="esm-cell">Outcome scored against the typed economic gate.</div>
+          <div class="esm-cell">KPI reading vs threshold</div>
+          <div class="esm-claim">"scalable"</div>
+        </div>
+        <div class="esm-row">
+          <div class="esm-state">LEARNED</div>
+          <div class="esm-cell">Prediction vs outcome error computed; confidence updated.</div>
+          <div class="esm-cell">confidence delta + pattern / anti-pattern</div>
+          <div class="esm-claim">"canonical"</div>
+        </div>
+        <div class="esm-row">
+          <div class="esm-state">CANONIZED</div>
+          <div class="esm-cell">Learning written to canon as a reusable primitive or rule.</div>
+          <div class="esm-cell">canon diff · playbook entry</div>
+          <div class="esm-claim">— terminal state</div>
+        </div>
+      </div>
+    </div>
+    <div class="esm-foot">FAILURE AT ANY STATE → BLOCKED OR KILLED · STATE, EVIDENCE + FAILURE REASON RETAINED AS NEGATIVE INTELLIGENCE</div>
+  </div>
+
+  <div class="g3-grid g3-grid--even">
+    <div class="panel-card">
+      <div class="card-label">ACCEPTED RECEIPTS</div>
+      <div class="chips">
+        <span class="chip">test output</span>
+        <span class="chip">diff</span>
+        <span class="chip">commit</span>
+        <span class="chip">API response</span>
+        <span class="chip">deployment log</span>
+        <span class="chip">metric</span>
+        <span class="chip">screenshot</span>
+        <span class="chip">reproducible check</span>
+        <span class="chip">verified artifact</span>
+      </div>
+    </div>
+    <div class="panel-card">
+      <div class="card-label">CONFIDENCE DYNAMICS</div>
+      <div class="conf-row"><span class="conf-dir">▲</span><span class="conf-text">Repeated verified results; larger samples; independent reproduction.</span></div>
+      <div class="conf-row"><span class="conf-dir">▲</span><span class="conf-text">Fresh evidence from high-reliability sources.</span></div>
+      <div class="conf-row"><span class="conf-dir">▼</span><span class="conf-text">Contradiction with existing canon or a peer measurement.</span></div>
+      <div class="conf-row"><span class="conf-dir">▼</span><span class="conf-text">Failed prediction, stale evidence, unreliable source.</span></div>
+      <div class="conf-formula">PREDICTION → OUTCOME → ERROR → LEARNING</div>
+    </div>
+    <div class="panel-card">
+      <div class="card-label">EPISTEMIC TYPES · NEVER COLLAPSED</div>
+      <div class="epi-row"><span class="epi-name">FACT</span><span class="epi-def">verified, receipted, reproducible</span></div>
+      <div class="epi-row"><span class="epi-name">INFERENCE</span><span class="epi-def">derived from facts, logic shown</span></div>
+      <div class="epi-row"><span class="epi-name">FORECAST</span><span class="epi-def">model output with error bars</span></div>
+      <div class="epi-row"><span class="epi-name">HYPOTHESIS</span><span class="epi-def">testable, experiment attached</span></div>
+      <div class="epi-row"><span class="epi-name">ASSUMPTION</span><span class="epi-def">unverified, flagged, expiring</span></div>
+      <div class="card-footnote">Contradiction detected → confidence downgraded → re-verification mission auto-filed in queue.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════ SHEET 4 · COMPANY GENOME & REPLICATION ════════════════ -->
+<section id="sheet-4" class="sheet">
+  <header class="sheet-head">
+    <div>
+      <div class="sheet-eyebrow">SHEET 4 / 5 · NEW IN REV 2.0</div>
+      <h2 class="sheet-title">Company Genome &amp; Global Replication</h2>
+    </div>
+    <div class="sheet-note">verified genome + local modules = candidate market node</div>
+  </header>
+
+  <div class="maturity-strip">
+    <span class="maturity-label">GENOME MATURITY</span>
+    <div class="mat-item">
+      <div class="mat-chip"><span class="mat-name">DRAFT</span><span class="mat-def">theory only</span></div>
+      <span class="strip-arrow">→</span>
+    </div>
+    <div class="mat-item">
+      <div class="mat-chip"><span class="mat-name">TESTED</span><span class="mat-def">first receipts</span></div>
+      <span class="strip-arrow">→</span>
+    </div>
+    <div class="mat-item">
+      <div class="mat-chip"><span class="mat-name">VERIFIED</span><span class="mat-def">gates passed</span></div>
+      <span class="strip-arrow">→</span>
+    </div>
+    <div class="mat-item">
+      <div class="mat-chip"><span class="mat-name">REPLICATION-READY</span><span class="mat-def">core/local split proven</span></div>
+    </div>
+    <span class="locked-chip">GLOBAL CLONE LOCKED UNTIL REPLICATION-READY</span>
+  </div>
+
+  <div class="genome-grid">
+    <div class="genome-card">
+      <div class="genome-group">PROBLEM &amp; WEDGE</div>
+      <div class="genome-field">problem</div>
+      <div class="genome-field">customer</div>
+      <div class="genome-field">trigger</div>
+      <div class="genome-field">wedge</div>
+    </div>
+    <div class="genome-card">
+      <div class="genome-group">OFFER</div>
+      <div class="genome-field">offer</div>
+      <div class="genome-field">pricing</div>
+      <div class="genome-field">positioning</div>
+      <div class="genome-field">delivery model</div>
+    </div>
+    <div class="genome-card">
+      <div class="genome-group">ACQUISITION</div>
+      <div class="genome-field">channels</div>
+      <div class="genome-field">conversion mechanics</div>
+      <div class="genome-field">retention mechanism</div>
+      <div class="genome-field">organic loops</div>
+    </div>
+    <div class="genome-card">
+      <div class="genome-group">OPERATIONS</div>
+      <div class="genome-field">product workflow</div>
+      <div class="genome-field">key agents</div>
+      <div class="genome-field">key workflows</div>
+      <div class="genome-field">cost structure</div>
+    </div>
+    <div class="genome-card">
+      <div class="genome-group">CONTROLS</div>
+      <div class="genome-field">economic gates</div>
+      <div class="genome-field">risks</div>
+      <div class="genome-field">failure modes</div>
+      <div class="genome-field">dependencies</div>
+    </div>
+    <div class="genome-card">
+      <div class="genome-group">REPLICATION</div>
+      <div class="genome-field">expansion paths</div>
+      <div class="genome-field">localization rules</div>
+      <div class="genome-field">infra requirements</div>
+      <div class="genome-field">compliance requirements</div>
+    </div>
+  </div>
+
+  <div class="repl-flow">
+    <div class="repl-cell">
+      <div class="repl-card"><div class="repl-name">Market Node</div><div class="repl-desc">A live business system in one geography × vertical.</div></div>
+      <div class="flow-arrow flow-arrow--sm"><span>▶</span></div>
+    </div>
+    <div class="repl-cell">
+      <div class="repl-card"><div class="repl-name">Validated System</div><div class="repl-desc">Node passes its typed gate with verified evidence.</div></div>
+      <div class="flow-arrow flow-arrow--sm"><span>▶</span></div>
+    </div>
+    <div class="repl-cell">
+      <div class="repl-card"><div class="repl-name">Company Genome</div><div class="repl-desc">System encoded as a structured, reusable blueprint.</div></div>
+      <div class="flow-arrow flow-arrow--sm"><span>▶</span></div>
+    </div>
+    <div class="repl-cell">
+      <div class="repl-card"><div class="repl-name">Core + Local Modules</div><div class="repl-desc">Global core held constant; local modules adapted.</div></div>
+      <div class="flow-arrow flow-arrow--sm"><span>▶</span></div>
+    </div>
+    <div class="repl-cell">
+      <div class="repl-card"><div class="repl-name">Candidate Node</div><div class="repl-desc">Genome × new market — a hypothesis, not a win.</div></div>
+      <div class="flow-arrow flow-arrow--sm"><span>▶</span></div>
+    </div>
+    <div class="repl-cell">
+      <div class="repl-card"><div class="repl-name">Validate → Replicate</div><div class="repl-desc">Small-scale proof first; full deployment only after gates pass.</div></div>
+    </div>
+  </div>
+
+  <div class="g3-grid g3-grid--wide-last">
+    <div class="panel-card">
+      <div class="card-label card-label--accent">GLOBAL CORE · NEVER LOCALIZED</div>
+      <div class="list-item">core customer problem</div>
+      <div class="list-item">core value engine</div>
+      <div class="list-item">core workflow</div>
+      <div class="list-item">core economics</div>
+      <div class="list-item">core product architecture</div>
+    </div>
+    <div class="panel-card">
+      <div class="card-label card-label--accent">LOCAL MODULES · SWAPPED PER MARKET</div>
+      <div class="chips">
+        <span class="chip">language</span>
+        <span class="chip">currency</span>
+        <span class="chip">pricing</span>
+        <span class="chip">payments</span>
+        <span class="chip">compliance</span>
+        <span class="chip">culture</span>
+        <span class="chip">distribution</span>
+        <span class="chip">partnerships</span>
+        <span class="chip">data handling</span>
+        <span class="chip">customer behavior</span>
+      </div>
+      <div class="card-footnote">A win in one geography is only a hypothesis in the next — candidate nodes re-validate before full deployment.</div>
+    </div>
+    <div class="panel-card">
+      <div class="card-label card-label--accent">MARKET NODE · FIRST-CLASS OBJECT</div>
+      <div class="node-fields">geography · vertical · segment · offer · local modules · typed gate · evidence state · autonomy level · resource allocation · status</div>
+      <div class="chips">
+        <span class="chip chip--accent">Exploring</span>
+        <span class="chip chip--accent">Validating</span>
+        <span class="chip chip--accent">Active</span>
+        <span class="chip chip--accent">Scaling</span>
+        <span class="chip chip--accent">Paused</span>
+        <span class="chip chip--accent">Killed</span>
+        <span class="chip chip--accent">Archived</span>
+      </div>
+      <div class="card-footnote card-footnote--accent">KILLED → NEGATIVE INTELLIGENCE · WE EVOLVE, NEVER DELETE</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════ SHEET 5 · CAPITAL & RESOURCE ALLOCATION ════════════════ -->
+<section id="sheet-5" class="sheet">
+  <header class="sheet-head">
+    <div>
+      <div class="sheet-eyebrow">SHEET 5 / 5 · NEW IN REV 2.0 · ENGINE 08</div>
+      <h2 class="sheet-title">Capital &amp; Resource Allocation</h2>
+    </div>
+    <div class="sheet-note">where does the next unit of scarce resource go?</div>
+  </header>
+
+  <div class="cap-grid">
+    <div class="cap-left">
+      <div class="panel-card">
+        <div class="card-label">SCARCE RESOURCES</div>
+        <div class="chips">
+          <span class="chip">founder time</span>
+          <span class="chip">agent time</span>
+          <span class="chip">cash</span>
+          <span class="chip">compute</span>
+          <span class="chip">engineering</span>
+          <span class="chip">distribution</span>
+          <span class="chip">partnerships</span>
+          <span class="chip">legal effort</span>
+          <span class="chip">operational attention</span>
+        </div>
+      </div>
+      <div class="panel-card">
+        <div class="card-label">ALLOCATION SCORING · PER OPPORTUNITY / NODE</div>
+        <div class="alloc-row"><span class="alloc-name">Expected return</span><span class="alloc-note">EV, evidence-weighted</span></div>
+        <div class="alloc-row"><span class="alloc-name">Confidence</span><span class="alloc-note">calibrated, not claimed</span></div>
+        <div class="alloc-row"><span class="alloc-name">Strategic value</span><span class="alloc-note">optionality created</span></div>
+        <div class="alloc-row"><span class="alloc-name">Learning value</span><span class="alloc-note">information per dollar</span></div>
+        <div class="alloc-row"><span class="alloc-name">Cost</span><span class="alloc-note">full, incl. attention</span></div>
+        <div class="alloc-row"><span class="alloc-name">Reversibility</span><span class="alloc-note">cheap to undo → act sooner</span></div>
+        <div class="alloc-row"><span class="alloc-name">Risk</span><span class="alloc-note">downside bounded?</span></div>
+        <div class="alloc-row"><span class="alloc-name">Time to proof</span><span class="alloc-note">shorter wins ties</span></div>
+        <div class="alloc-row"><span class="alloc-name">Opportunity cost</span><span class="alloc-note">vs current #1</span></div>
+        <div class="card-footnote">Reserve held unallocated for shocks + new opportunities. Reallocation triggers: gate verdict · confidence shift · contradiction · new #1 in opportunity graph.</div>
+      </div>
+      <div class="token-card">
+        <div class="card-label card-label--accent">KILL LOGIC → NEGATIVE INTELLIGENCE</div>
+        <div class="kill-item">Core assumptions repeatedly fail</div>
+        <div class="kill-item">Economics cannot reach gate thresholds</div>
+        <div class="kill-item">Time-to-proof exceeds justified cost</div>
+        <div class="kill-item">Customer pain is weak</div>
+        <div class="kill-item">Distribution structurally blocked</div>
+        <div class="kill-item">Regulatory burden destroys the model</div>
+        <div class="kill-item">Opportunity cost exceeds carrying value</div>
+        <div class="card-footnote">Kill preserves data, decisions, failure reasons, artifacts, reusable modules. Negative intelligence sharpens Engine 00's next ranking.</div>
+      </div>
+    </div>
+
+    <div class="cap-right">
+      <div class="card-label">TYPED ECONOMIC GATES · ONE UNIVERSAL GATE IS RETIRED — THRESHOLDS FOLLOW THE BUSINESS MODEL</div>
+      <div class="gates-grid">
+        <div class="gate-card">
+          <div class="gate-head"><div class="gate-name">SaaS</div><div class="gate-cadence">MONTHLY</div></div>
+          <div class="gate-metrics">activation · retention · NRR · CAC payback · gross margin · expansion</div>
+          <div class="gate-rules">
+            <div><span class="gr-scale">SCALE →</span> <span class="gr-val">NRR &gt; 100% · payback &lt; 12mo · margin &gt; 70%</span></div>
+            <div><span class="gr-validate">VALIDATE →</span> <span class="gr-val">activation + retention cohorts stabilize</span></div>
+            <div><span class="gr-kill">KILL →</span> <span class="gr-val">churn &gt; growth for 3 consecutive cohorts</span></div>
+          </div>
+        </div>
+        <div class="gate-card">
+          <div class="gate-head"><div class="gate-name">Marketplace</div><div class="gate-cadence">WEEKLY</div></div>
+          <div class="gate-metrics">liquidity · supply/demand density · repeat rate · take rate · contribution margin</div>
+          <div class="gate-rules">
+            <div><span class="gr-scale">SCALE →</span> <span class="gr-val">liquidity in ≥1 segment · repeat rising · positive contribution</span></div>
+            <div><span class="gr-validate">VALIDATE →</span> <span class="gr-val">match rate proves in one dense niche</span></div>
+            <div><span class="gr-kill">KILL →</span> <span class="gr-val">liquidity flat despite subsidy</span></div>
+          </div>
+        </div>
+        <div class="gate-card">
+          <div class="gate-head"><div class="gate-name">Consumer</div><div class="gate-cadence">WEEKLY</div></div>
+          <div class="gate-metrics">D1/D7/D30 retention · engagement · organic coefficient · ARPU · CAC</div>
+          <div class="gate-rules">
+            <div><span class="gr-scale">SCALE →</span> <span class="gr-val">retention curve flattens · organic &gt; paid</span></div>
+            <div><span class="gr-validate">VALIDATE →</span> <span class="gr-val">D30 cohort retains above category baseline</span></div>
+            <div><span class="gr-kill">KILL →</span> <span class="gr-val">retention decays to zero — no floor</span></div>
+          </div>
+        </div>
+        <div class="gate-card">
+          <div class="gate-head"><div class="gate-name">Txn Infrastructure</div><div class="gate-cadence">MONTHLY</div></div>
+          <div class="gate-metrics">volume · reliability · cost/txn · gross profit · failure rate</div>
+          <div class="gate-rules">
+            <div><span class="gr-scale">SCALE →</span> <span class="gr-val">reliability ≥ 99.9% · unit gross profit positive</span></div>
+            <div><span class="gr-validate">VALIDATE →</span> <span class="gr-val">first production volume, verified</span></div>
+            <div><span class="gr-kill">KILL →</span> <span class="gr-val">cost/txn cannot beat incumbent path</span></div>
+          </div>
+        </div>
+        <div class="gate-card">
+          <div class="gate-head"><div class="gate-name">AI Product</div><div class="gate-cadence">WEEKLY</div></div>
+          <div class="gate-metrics">successful outcome rate · cost per outcome · inference cost · retention · error rate</div>
+          <div class="gate-rules">
+            <div><span class="gr-scale">SCALE →</span> <span class="gr-val">outcome rate ≥ human baseline · margin &gt; 40% after inference</span></div>
+            <div><span class="gr-validate">VALIDATE →</span> <span class="gr-val">outcomes verified, not self-reported</span></div>
+            <div><span class="gr-kill">KILL →</span> <span class="gr-val">error rate erodes trust faster than value accrues</span></div>
+          </div>
+        </div>
+        <div class="gate-card">
+          <div class="gate-head"><div class="gate-name">Services → Software</div><div class="gate-cadence">MONTHLY</div></div>
+          <div class="gate-metrics">delivery margin · repeatability · automation % · implementation time · recurring conversion</div>
+          <div class="gate-rules">
+            <div><span class="gr-scale">SCALE →</span> <span class="gr-val">automation &gt; 60% · recurring &gt; one-off revenue</span></div>
+            <div><span class="gr-validate">VALIDATE →</span> <span class="gr-val">same playbook delivers 3× without rework</span></div>
+            <div><span class="gr-kill">KILL →</span> <span class="gr-val">every delivery remains bespoke</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="verdicts">
+        <span class="verdicts-label">VERDICTS →</span>
+        <span class="verdict">CLONE</span>
+        <span class="verdict">ITERATE</span>
+        <span class="verdict">PAUSE</span>
+        <span class="verdict">KILL</span>
+        <span class="verdicts-note">· every verdict writes back to memory</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════ CLOSING STRIP · INSIGHT / MOAT / CATEGORY ════════════════ -->
+<section class="sheet">
+  <div class="closing-grid">
+    <div class="insight-card">
+      <div class="closing-eyebrow">CORE INSIGHT · REV 2</div>
+      <p class="insight-text">Products fail. Agents get replaced. Markets shift. What accumulates is <strong>execution intelligence</strong> — the closed loop between sensing, decision, execution, verification, memory, and replication. FABLE-5's compounding asset is not any engine; it is the verified record of what works, where, and why.</p>
+    </div>
+    <div class="insight-card">
+      <div class="closing-eyebrow">MOAT STACK · HONEST</div>
+      <div class="moat-body">
+        <div class="moat-label">COPIED QUICKLY:</div>
+        <div class="moat-copied">engine list · agent prompts · this diagram</div>
+        <div class="moat-label moat-label--accent">COMPOUNDS — HARD TO REPRODUCE:</div>
+        <div>verified playbooks · company genomes · calibrated decision history · market-node intelligence · negative intelligence · operating primitives · embedded workflows &amp; switching cost</div>
+      </div>
+    </div>
+    <div class="insight-card">
+      <div class="closing-eyebrow">CATEGORY · SELECTED</div>
+      <div class="category-body">
+        <div class="category-name">Autonomous Company Replication System</div>
+        <div><span class="category-k">Public —</span> software that builds and runs companies.</div>
+        <div><span class="category-k">Technical —</span> a governed control plane that manufactures, verifies, and replicates business systems.</div>
+        <div><span class="category-k">VC —</span> the operating system for manufacturing companies; every validated genome lowers the marginal cost of the next.</div>
+      </div>
+    </div>
+  </div>
+  <footer class="foot">
+    <span>FABLE-5 · REV 2.0 · SENSE → INTERPRET → PRIORITIZE → DECIDE → AUTHORIZE → DESIGN → BUILD → DEPLOY → VERIFY → MEASURE → ADAPT → CANONIZE</span>
+    <span>FOUNDER-OWNED INFRA · NO SILENT SPEND · RECEIPTS REQUIRED · WE EVOLVE, NEVER DELETE</span>
+  </footer>
+</section>
+
+</main>
+
+<!-- ════════════════ DRAFTING ROOM · FLOATING CONTROLS ════════════════ -->
+<aside class="drafting-room" id="drafting-room" hidden>
+  <button class="dr-toggle" id="dr-toggle" type="button" aria-expanded="false" aria-controls="dr-body">
+    <span class="dr-toggle-mark" aria-hidden="true">◧</span> DRAFTING ROOM
+  </button>
+  <div class="dr-body" id="dr-body" hidden>
+    <div class="dr-group" role="group" aria-labelledby="dr-palette-label">
+      <div class="dr-label" id="dr-palette-label">PALETTE</div>
+      <div class="dr-options">
+        <button type="button" class="dr-swatch" data-palette="cyan"  aria-pressed="false" title="Midnight / Cyan"><span class="dr-swatch-chip" style="--sw-bg:#0d1b2e;--sw-accent:#7fd4ff"></span>CYAN</button>
+        <button type="button" class="dr-swatch" data-palette="mint"  aria-pressed="false" title="Forest / Mint"><span class="dr-swatch-chip" style="--sw-bg:#101c14;--sw-accent:#8affc1"></span>MINT</button>
+        <button type="button" class="dr-swatch" data-palette="amber" aria-pressed="false" title="Umber / Amber"><span class="dr-swatch-chip" style="--sw-bg:#1c1410;--sw-accent:#ffc46b"></span>AMBER</button>
+        <button type="button" class="dr-swatch" data-palette="violet" aria-pressed="false" title="Dusk / Violet"><span class="dr-swatch-chip" style="--sw-bg:#170f1e;--sw-accent:#c9a6ff"></span>VIOLET</button>
+      </div>
+    </div>
+    <div class="dr-group" role="group" aria-labelledby="dr-texture-label">
+      <div class="dr-label" id="dr-texture-label">TEXTURE</div>
+      <div class="dr-options">
+        <button type="button" class="dr-opt" data-texture="graph" aria-pressed="false">GRAPH</button>
+        <button type="button" class="dr-opt" data-texture="dots"  aria-pressed="false">DOTS</button>
+        <button type="button" class="dr-opt" data-texture="plain" aria-pressed="false">PLAIN</button>
+      </div>
+    </div>
+    <div class="dr-group">
+      <label class="dr-label" for="dr-grid">GRID SCALE <span class="dr-grid-val" id="dr-grid-val">36px</span></label>
+      <input type="range" id="dr-grid" min="20" max="64" step="4" value="36">
+    </div>
+    <button type="button" class="dr-reset" id="dr-reset">RESET TO SPEC DEFAULT</button>
+  </div>
+</aside>
+
+</body>
+</html>
