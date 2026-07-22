@@ -14,6 +14,7 @@ const NAV: { to: string; num: string; label: string }[] = [
   { to: '/genomes', num: '04', label: 'GENOMES' },
   { to: '/allocation', num: '05', label: 'ALLOCATION' },
   { to: '/governance', num: '06', label: 'GOVERNANCE' },
+  { to: '/memory', num: '07', label: 'MEMORY' },
 ];
 
 export default function Shell({ route, children }: { route: string; children: React.ReactNode }) {

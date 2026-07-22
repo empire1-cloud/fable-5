@@ -5,6 +5,7 @@ import type { EngineId, Mission, MissionStatus } from '../types';
 import { ENGINE_MAP } from '../data/engines';
 import { Eyebrow, Chip, Badge, SectionRule, EmptyNote } from '../components/ui';
 import { navigate } from '../lib/router';
+import DecisionEngine from '../components/DecisionEngine';
 
 const STATUS_TONE: Record<MissionStatus, 'ok' | 'warn' | 'bad'> = {
   ACTIVE: 'ok',
@@ -105,6 +106,8 @@ export default function ControlPlane() {
           <OpportunityCard key={o.id} opp={o} open={openOpp === o.id} onToggle={() => setOpenOpp(openOpp === o.id ? null : o.id)} />
         ))}
       </div>
+
+      <DecisionEngine />
 
       <SectionRule>MISSION QUEUE · RANKED, NOT FIFO</SectionRule>
       <div className="filter-bar">
