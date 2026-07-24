@@ -3,6 +3,7 @@ import { href } from '../lib/router';
 import { useAppState } from '../state/AppState';
 import { systemSnapshot } from '../lib/selectors';
 import { Panel, Eyebrow } from '../components/ui';
+import ExecutionRuntimeStatus from '../components/ExecutionRuntimeStatus';
 
 export default function Home() {
   const { state } = useAppState();
@@ -30,6 +31,8 @@ export default function Home() {
           </a>
         </div>
       </section>
+
+      <ExecutionRuntimeStatus />
 
       <section className="snapshot-grid">
         <Panel label="ACTIVE OPPORTUNITIES" className="snapshot-card">
