@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ENGINES, ENGINE_MAP } from '../data/engines';
 import type { Engine, EngineLayer } from '../types';
 import { Eyebrow, Chip, SectionRule } from '../components/ui';
+import { useAppState } from '../state/AppState';
 
 const LAYER_LABEL: Record<EngineLayer, string> = {
   strategic: 'STRATEGIC SELECTION',
@@ -27,6 +28,7 @@ function EngineCard({ engine, selected, onSelect }: { engine: Engine; selected: 
 }
 
 export default function Blueprint() {
+  const { apiStatus } = useAppState();
   const [selectedId, setSelectedId] = useState<string>('00');
   const selected = ENGINE_MAP[selectedId];
 
@@ -39,8 +41,12 @@ export default function Blueprint() {
           <Eyebrow>SHEET 01 · SYSTEM BLUEPRINT · REV 2.0</Eyebrow>
           <h2 className="page-title">Interactive System Map</h2>
         </div>
-        <div className="page-note">click an engine to inspect inputs, outputs, KPIs, receipts, and escalation</div>
+        <div className="page-note">canonical engine map · click an engine to inspect inputs, outputs, KPIs, receipts, and escalation</div>
       </header>
+
+      <div className="callout callout--accent">
+        Blueprint is the canonical operating map. Runtime status is <strong>{apiStatus}</strong>, but the engine definitions shown here are source-controlled system architecture, not live telemetry.
+      </div>
 
       <SectionRule>STRATEGIC SELECTION · ENGINE 00</SectionRule>
       <div className="engine-grid engine-grid--single">
