@@ -5,6 +5,7 @@ import type { EngineId, Mission, MissionStatus } from '../types';
 import { ENGINE_MAP } from '../data/engines';
 import { Eyebrow, Chip, Badge, SectionRule, EmptyNote } from '../components/ui';
 import { navigate } from '../lib/router';
+import ExecutionRuntimeStatus from '../components/ExecutionRuntimeStatus';
 
 const STATUS_TONE: Record<MissionStatus, 'ok' | 'warn' | 'bad'> = {
   ACTIVE: 'ok',
@@ -93,6 +94,8 @@ export default function ControlPlane() {
           Signals → Opportunity Graph → Decision Engine → Resource Allocation → Mission Queue → Execution → Receipts → Verification → Outcome → Memory
         </div>
       </header>
+
+      <ExecutionRuntimeStatus showJobs />
 
       <SectionRule>SIGNALS</SectionRule>
       <div className="panel signal-list">

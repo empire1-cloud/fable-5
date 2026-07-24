@@ -3,6 +3,7 @@ import { href } from '../lib/router';
 import { useAppState } from '../state/AppState';
 import { systemSnapshot } from '../lib/selectors';
 import { Panel, Eyebrow } from '../components/ui';
+import ExecutionRuntimeStatus from '../components/ExecutionRuntimeStatus';
 
 export default function Home() {
   const { state } = useAppState();
@@ -18,8 +19,8 @@ export default function Home() {
         <p className="hero-sub">
           A governed, evidence-backed system that discovers opportunities, allocates resources,
           manufactures companies, verifies reality, learns from every outcome, and replicates
-          validated systems across markets. Every workspace below is a live operating surface,
-          seeded with realistic demo data — not a static diagram.
+          validated systems across markets. Every workspace below is an operating surface.
+          Seeded records stay labeled as demo data; live Cofounder execution reports separately.
         </p>
         <div className="hero-actions">
           <a className="btn btn--primary" href={href('/control-plane')}>
@@ -31,6 +32,8 @@ export default function Home() {
         </div>
       </section>
 
+      <ExecutionRuntimeStatus />
+
       <section className="snapshot-grid">
         <Panel label="ACTIVE OPPORTUNITIES" className="snapshot-card">
           <div className="snapshot-num">{snap.activeOpportunities}</div>
@@ -38,7 +41,7 @@ export default function Home() {
         </Panel>
         <Panel label="ACTIVE MISSIONS" className="snapshot-card">
           <div className="snapshot-num">{snap.activeMissions}</div>
-          <div className="snapshot-note">executing inside autonomy bounds right now</div>
+          <div className="snapshot-note">seeded mission records; live execution is reported above</div>
         </Panel>
         <Panel label="PENDING VERIFICATION" className="snapshot-card">
           <div className="snapshot-num">{snap.pendingVerification}</div>
