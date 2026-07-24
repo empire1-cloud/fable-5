@@ -16,6 +16,7 @@
 
 import type {
   AutonomyLevel,
+  EvidenceChainStep,
   CanonEntry,
   EvidenceProvenance,
   EvidenceRecord,
@@ -136,6 +137,96 @@ function adaptReceipt(receipt: ApiReceipt): Receipt {
   };
 }
 
+function taskChainStep(task: ApiTask): EvidenceChainStep {
+  return {
+    id: 'mission',
+    label: 'Mission registered',
+    status: 'passed',
+    source: 'task queue',
+    detail: `${task.status || 'queued'} · ${task.repo || 'repo pending'}`,
+  };
+}
+
+function buildApprovalChain(
+  approval: ApiApproval,
+  manifest: ApiManifest | undefined,
+  receipts: ApiReceipt[],
+): EvidenceChainStep[] {
+  const rejected = approval.status === 'rejected' || approval.status === 'blocked';
+  const approved = approval.status === 'approved';
+  const manifestSealed = manifest?.status === 'sealed' || manifest?.status === 'consumed' || Boolean(manifest?.sealed_at);
+  const manifestConsumed = manifest?.status === 'consumed' || Boolean(manifest?.consumed_at);
+
+  return [
+    {
+      id: 'approval-request',
+      label: 'Approval requested',
+      status: 'passed',
+      source: 'approval ledger',
+      detail: `${approval.requested_action || approval.title} · ${approval.repo}`,
+      at: approval.created_at,
+    },
+    {
+      id: 'founder-decision',
+      label: 'Founder decision',
+      status: rejected ? 'blocked' : approved ? 'passed' : 'waiting',
+      source: 'approval ledger',
+      detail: approval.decision ?? approval.status,
+      at: approval.resolved_at ?? undefined,
+    },
+    {
+      id: 'preflight',
+      label: 'Preflight cleared',
+      status: manifest ? 'passed' : approved ? 'waiting' : 'not_applicable',
+      source: 'manifest gate',
+      detail: manifest
+        ? `manifest ${manifest.manifest_id}`
+        : approved
+          ? 'approved but no manifest on file yet'
+          : 'waiting for approval before preflight',
+      at: manifest?.created_at,
+    },
+    {
+      id: 'manifest',
+      label: 'Manifest sealed',
+      status: manifestSealed ? 'passed' : manifest ? 'waiting' : 'not_applicable',
+      source: 'handoff manifest',
+      detail: manifest
+        ? `${manifest.status} · ${manifest.dry_run_only ? 'dry-run only' : 'execution capable'}`
+        : 'no manifest on file',
+      at: manifest?.sealed_at ?? manifest?.created_at,
+    },
+    {
+      id: 'execution-mode',
+      label: 'Execution mode',
+      status: manifest ? 'passed' : 'not_applicable',
+      source: 'Hermes execution rules',
+      detail: manifest
+        ? `${manifest.execution_enabled ? 'execution enabled' : 'execution disabled'} · ${manifest.dry_run_only ? 'dry-run only' : 'live actions allowed by rules'}`
+        : 'no execution profile without a manifest',
+      at: manifest?.sealed_at ?? manifest?.created_at,
+    },
+    {
+      id: 'hermes-intake',
+      label: 'Hermes intake',
+      status: manifestConsumed ? 'passed' : manifestSealed ? 'waiting' : 'not_applicable',
+      source: manifest?.consumed_by ?? 'hermes-local-stub',
+      detail: manifest?.result_summary ?? (manifestSealed ? 'sealed manifest awaiting intake' : 'intake not reached'),
+      at: manifest?.consumed_at ?? undefined,
+    },
+    {
+      id: 'receipt-ledger',
+      label: 'Receipt ledger',
+      status: receipts.length > 0 ? 'passed' : manifestConsumed ? 'waiting' : 'not_applicable',
+      source: 'receipts ledger',
+      detail: receipts.length > 0
+        ? `${receipts.length} receipt${receipts.length === 1 ? '' : 's'} attached`
+        : 'no receipt attached to this chain',
+      at: receipts[0]?.timestamp,
+    },
+  ];
+}
+
 // ── Adapters ──────────────────────────────────────────────────────────────
 
 /**
@@ -206,6 +297,7 @@ export function adaptApproval(
   }
 
   const receiptRecords = receipts.map(adaptReceipt);
+  const chain = buildApprovalChain(approval, manifest, receipts);
 
   return {
     id: `ER-approval-${approval.id}`,
@@ -220,6 +312,7 @@ export function adaptApproval(
     receipts: receiptRecords,
     contradictions: [],
     audit: auditTrail,
+    chain,
     provenance: liveProvenance(
       manifest
         ? `approval + manifest chain mapped from ${approval.repo}`
@@ -254,7 +347,12 @@ export function buildEvidenceForTask(
     );
     const rec = adaptApproval(taskApproval, manifest, matchingReceipts);
     // Override id to match the task's evidenceRecordId
-    return { ...rec, id: `ER-task-${task.id}`, missionId: `M-${task.id}` };
+    return {
+      ...rec,
+      id: `ER-task-${task.id}`,
+      missionId: `M-${task.id}`,
+      chain: [taskChainStep(task), ...(rec.chain ?? [])],
+    };
   }
 
   // No approval yet → synthetic PROPOSED record
@@ -272,6 +370,16 @@ export function buildEvidenceForTask(
         at: new Date().toISOString(),
         actor: 'empire-cofounder',
         action: 'task registered — no approval yet',
+      },
+    ],
+    chain: [
+      taskChainStep(task),
+      {
+        id: 'approval-request',
+        label: 'Approval requested',
+        status: task.requires_approval ? 'waiting' : 'not_applicable',
+        source: 'approval ledger',
+        detail: task.requires_approval ? 'mission requires approval; no approval on file yet' : 'task does not require approval',
       },
     ],
     provenance: liveProvenance('task queue entry without approval yet', new Date().toISOString()),

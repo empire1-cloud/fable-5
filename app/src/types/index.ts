@@ -145,6 +145,17 @@ export interface EvidenceProvenance {
   observedAt?: string;
 }
 
+export type EvidenceChainStatus = 'passed' | 'waiting' | 'blocked' | 'not_applicable';
+
+export interface EvidenceChainStep {
+  id: string;
+  label: string;
+  status: EvidenceChainStatus;
+  source: string;
+  detail: string;
+  at?: string;
+}
+
 export interface Receipt {
   id: string;
   type: ReceiptType;
@@ -198,6 +209,7 @@ export interface EvidenceRecord {
   measurement?: MeasurementRecord;
   audit: AuditEvent[];
   provenance?: EvidenceProvenance;
+  chain?: EvidenceChainStep[];
 }
 
 export type GenomeMaturity = 'Draft' | 'Tested' | 'Verified' | 'Replication-Ready';
