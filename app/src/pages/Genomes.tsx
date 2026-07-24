@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { GENOMES, MARKET_NODES, MATURITY_ORDER } from '../data/genomes';
 import type { CompanyGenome, GenomeMaturity } from '../types';
 import { Eyebrow, Chip, SectionRule } from '../components/ui';
+import { useAppState } from '../state/AppState';
 
 function MaturityStrip({ current }: { current: GenomeMaturity }) {
   const idx = MATURITY_ORDER.indexOf(current);
@@ -95,6 +96,7 @@ function GenomeDetail({ genome }: { genome: CompanyGenome }) {
 }
 
 export default function Genomes() {
+  const { apiStatus, connectedRepos } = useAppState();
   const [selectedId, setSelectedId] = useState(GENOMES[0]?.id);
   const selected = GENOMES.find((g) => g.id === selectedId) ?? GENOMES[0];
 
@@ -105,8 +107,12 @@ export default function Genomes() {
           <Eyebrow>SHEET 04 · COMPANY GENOME &amp; REPLICATION</Eyebrow>
           <h2 className="page-title">Company Genome</h2>
         </div>
-        <div className="page-note">verified genome + local modules = candidate market node</div>
+        <div className="page-note">verified genome + local modules = candidate market node · universe adapters not yet live</div>
       </header>
+
+      <div className="callout callout--accent">
+        Genomes is currently a <strong>seed-backed canonical workspace</strong>. Runtime status is <strong>{apiStatus}</strong>, and no genome/universe adapter is registered in the current Cofounder repo registry ({connectedRepos.length} repos visible).
+      </div>
 
       <SectionRule>GENOMES</SectionRule>
       <div className="genome-picker">
