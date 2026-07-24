@@ -27,6 +27,10 @@ import { SEED_TOKENS, SEED_CANON } from '../data/governance';
 import {
   empireApi,
   type ApiBrief,
+  type ApiExecutionProfileStatus,
+  type ApiLoopStatus,
+  type ApiRepo,
+  type ApiWatchReport,
 } from '../lib/empireApi';
 import {
   adaptTask,
@@ -49,7 +53,14 @@ export interface EmpireLiveState {
   appState: AppState;
   /** Raw brief for the dashboard header */
   brief: ApiBrief | null;
-  /** True only if /proof/canonical-flow returned final_status === "success" */
+  /** Read-only runtime/watch metadata for connected surfaces */
+  runtime: {
+    loopStatus: ApiLoopStatus | null;
+    executionProfile: ApiExecutionProfileStatus | null;
+    watchReports: ApiWatchReport[];
+    repos: ApiRepo[];
+  };
+  /** True only if the read-only brief says canonical proof cleared */
   proofVerified: boolean;
   /** ISO timestamp of last successful fetch */
   fetchedAt: string;
@@ -85,6 +96,29 @@ async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   ]);
 }
 
+function deriveProofVerified(brief: ApiBrief | null): boolean {
+  if (!brief) return false;
+
+  const status = brief.canonical_proof_status.trim().toLowerCase();
+  if (!status) return false;
+  if (
+    status.includes('partial') ||
+    status.includes('draft') ||
+    status.includes('not proven') ||
+    status.includes('broken') ||
+    status.includes('failed')
+  ) {
+    return false;
+  }
+
+  return brief.canonical_proof_hermes_accepted && (
+    status.includes('success') ||
+    status.includes('proven') ||
+    status.includes('complete') ||
+    status.includes('canonical')
+  );
+}
+
 // ── Hook ──────────────────────────────────────────────────────────────────
 
 export function useEmpireCofounder(): UseEmpireCofounterResult {
@@ -103,31 +137,28 @@ export function useEmpireCofounder(): UseEmpireCofounterResult {
 
     // 2. Fetch all data sources in parallel
     try {
-      const [tasks, approvals, manifests, agents, skills, brief] = await Promise.all([
+      const [tasks, approvals, manifests, agents, skills, brief, receiptsResult, watchResult, loopStatusResult, executionProfileResult, reposResult] = await Promise.all([
         empireApi.tasks(),
         empireApi.approvals(),
         empireApi.manifests(),
         empireApi.registryAgents(),
         empireApi.registrySkills(),
         empireApi.brief(),
+        empireApi.receipts().catch(() => []),
+        empireApi.watch().catch(() => []),
+        empireApi.loopStatus().catch(() => null),
+        empireApi.executionProfile().catch(() => null),
+        empireApi.repos().catch(() => []),
       ]);
 
-      // 3. Derive canonical proof status (non-blocking if it fails)
-      let proofVerified = false;
-      try {
-        const proof = await empireApi.proofCanonicalFlow();
-        proofVerified = proof.final_status === 'success';
-      } catch {
-        // Proof check is best-effort — don't block hydration
-        proofVerified = false;
-      }
+      const proofVerified = deriveProofVerified(brief);
 
-      // 4. Adapt tasks → missions + evidence records
+      // 3. Adapt tasks → missions + evidence records
       const missions = tasks.map(adaptTask);
 
       const evidence = Object.fromEntries(
         tasks.map((task) => {
-          const rec = buildEvidenceForTask(task, approvals, manifests);
+          const rec = buildEvidenceForTask(task, approvals, manifests, receiptsResult);
 
           // Only claim VERIFIED if canonical proof actually passed
           // (anti-fake-progress: don't let VERIFIED appear if proof is broken)
@@ -144,15 +175,15 @@ export function useEmpireCofounder(): UseEmpireCofounterResult {
         }),
       );
 
-      // 5. Intent tokens from financial approvals
+      // 4. Intent tokens from financial approvals
       const liveTokens = approvals
         .map(adaptApprovalToToken)
         .filter((t): t is NonNullable<typeof t> => t !== null);
 
-      // 6. Canon entries from registry (agents + skills)
+      // 5. Canon entries from registry (agents + skills)
       const registryCanon = adaptRegistryToCanon(agents, skills);
 
-      // 7. Build the AppState
+      // 6. Build the AppState
       const appState: AppState = {
         missions: missions.length > 0 ? missions : SEED_MISSIONS,
         evidence:
@@ -169,6 +200,12 @@ export function useEmpireCofounder(): UseEmpireCofounterResult {
       setLiveState({
         appState,
         brief,
+        runtime: {
+          loopStatus: loopStatusResult,
+          executionProfile: executionProfileResult,
+          watchReports: watchResult,
+          repos: reposResult,
+        },
         proofVerified,
         fetchedAt: new Date().toISOString(),
       });

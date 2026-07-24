@@ -34,6 +34,13 @@ import { SEED_ALLOCATIONS } from '../data/resources';
 import { SEED_TOKENS, SEED_CANON } from '../data/governance';
 import { canAdvance, nextEvidenceState } from '../lib/evidence';
 import { useEmpireCofounder, type ApiStatus } from '../hooks/useEmpireCofounder';
+import type {
+  ApiBrief,
+  ApiExecutionProfileStatus,
+  ApiLoopStatus,
+  ApiRepo,
+  ApiWatchReport,
+} from '../lib/empireApi';
 
 // ── State shape ───────────────────────────────────────────────────────────
 
@@ -201,6 +208,16 @@ interface Ctx {
   apiStatus: ApiStatus;
   /** ISO timestamp of last successful live fetch */
   lastFetchedAt: string | null;
+  /** Read-only dashboard brief from empire_auto_cofounder */
+  liveBrief: ApiBrief | null;
+  /** Read-only loop status from the governed operator runtime */
+  loopStatus: ApiLoopStatus | null;
+  /** Effective Hermes execution rules/profile */
+  executionProfile: ApiExecutionProfileStatus | null;
+  /** Read-only watch reports for registered repos */
+  watchReports: ApiWatchReport[];
+  /** Registered repos exposed by the cofounder runtime */
+  connectedRepos: ApiRepo[];
   /** True only when canonical proof chain confirmed intact */
   proofVerified: boolean;
   /** Trigger a manual refetch from the API */
@@ -240,6 +257,11 @@ export function AppStateProvider({
       state,
       apiStatus,
       lastFetchedAt: liveState?.fetchedAt ?? null,
+      liveBrief: liveState?.brief ?? null,
+      loopStatus: liveState?.runtime.loopStatus ?? null,
+      executionProfile: liveState?.runtime.executionProfile ?? null,
+      watchReports: liveState?.runtime.watchReports ?? [],
+      connectedRepos: liveState?.runtime.repos ?? [],
       proofVerified: liveState?.proofVerified ?? false,
       refetchLive: refetch,
       advanceEvidence: (recordId) =>

@@ -7,7 +7,7 @@ import { Eyebrow, Chip, SectionRule, Badge } from '../components/ui';
 const TOKEN_TONE: Record<string, 'ok' | 'warn' | 'bad'> = { VALID: 'ok', EXPIRED: 'warn', REVOKED: 'bad' };
 
 export default function Governance() {
-  const { state, revokeToken, setBoundary } = useAppState();
+  const { state, revokeToken, setBoundary, apiStatus, proofVerified, connectedRepos } = useAppState();
 
   return (
     <div className="page-stack">
@@ -16,8 +16,12 @@ export default function Governance() {
           <Eyebrow>SHEET 06 · GOVERNANCE</Eyebrow>
           <h2 className="page-title">Governance</h2>
         </div>
-        <div className="page-note">authority is granted, expiring, revocable, audited</div>
+        <div className="page-note">authority is granted, expiring, revocable, audited · hybrid live/canonical controls</div>
       </header>
+
+      <div className="callout callout--accent">
+        Governance is <strong>{apiStatus === 'online' ? 'runtime-connected' : 'operating from local fallback'}</strong>. Tokens and canon can hydrate from Cofounder when available, but boundary changes here remain local UI controls until a dedicated governance execution adapter is connected. Proof is {proofVerified ? 'verified' : 'not yet verified'}, and {connectedRepos.length} runtime repos are currently visible.
+      </div>
 
       <SectionRule>AUTONOMY LADDER</SectionRule>
       <div className="panel">

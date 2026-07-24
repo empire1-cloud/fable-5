@@ -120,17 +120,119 @@ export interface ApiBrief {
   recommended_next_safe_skill: string;
   dry_run_only: boolean;
   execution_mode: string;
+  execution_capability_enabled?: boolean;
+  execution_capability_summary?: string;
+  watched_repo_count?: number;
+  watch_findings_count?: number;
+  open_blocker_count?: number;
+  top_blocker?: string;
+  latest_receipts?: string[];
+  receipt_ledger_count?: number;
+  verified_receipt_count?: number;
+  unverified_receipt_count?: number;
+  anti_polsia_note?: string;
 }
 
-export interface ApiProofResult {
-  final_status: string;
-  plan_id: string;
-  approval_id: number | null;
+export interface ApiReceipt {
+  id: string;
   manifest_id: string;
-  hermes_intake_accepted: boolean;
+  plan_id: string;
+  repo: string;
+  action_class: string;
+  what_changed: string;
+  what_tested: string;
+  test_result: string;
+  proof_artifact: string;
+  reproducible_command: string;
+  verified: boolean;
+  verification_basis: string;
+  delegated_to: string | null;
+  self_report_only: boolean;
+  previous_receipt_hash: string | null;
+  receipt_hash: string | null;
+  timestamp: string;
+}
+
+export interface ApiWatchFinding {
+  kind: string;
+  severity: string;
+  detail: string;
+  evidence: string;
+}
+
+export interface ApiWatchReport {
+  full_name: string;
+  local_path: string | null;
+  resolved: boolean;
+  is_git_repo: boolean;
+  head_commit: string | null;
+  branch: string | null;
+  dirty: boolean;
+  dirty_file_count: number;
+  recent_commits: string[];
+  has_tests: boolean;
+  findings: ApiWatchFinding[];
+  inspection_mode: string;
+  inspection_error: string | null;
+  generated_at: string;
+  protected_no_touch: boolean;
+}
+
+export interface ApiLoopIteration {
+  at: string;
+  repo_inspected: string | null;
+  action_considered: string | null;
+  outcome: string;
+  detail: string;
+  receipt_id: string | null;
+  item_id: string | null;
+  plan_id: string | null;
+  task_id: number | null;
+  stage: string | null;
+}
+
+export interface ApiLoopStatus {
+  running: boolean;
+  pid: number | null;
+  started_at: string | null;
+  last_iteration_at: string | null;
+  last_repo_inspected: string | null;
+  last_action_considered: string | null;
+  last_execution_or_refusal: string | null;
+  next_scheduled_iteration: string | null;
+  active_profile: string | null;
+  current_item_id: string | null;
+  mission_queue_depth: number;
+  waiting_approval_count: number;
+  ready_item_count: number;
+  last_receipt_id: string | null;
+  iterations: ApiLoopIteration[];
+  note: string;
+}
+
+export interface ApiExecutionRules {
+  execution_enabled: boolean;
   dry_run_only: boolean;
-  consumed_status: string;
-  steps: { step: string; status: string; detail?: string }[];
+  allowed_action_classes: string[];
+  require_live_approval_classes: string[];
+  auto_permitted_classes: string[];
+  blocked_action_classes: string[];
+  require_cleared_chain: boolean;
+  require_independent_verification: boolean;
+  delegation_targets: string[];
+  test_commands: Record<string, string>;
+  default_test_command: string;
+  protected_branches: string[];
+  infra_ownership_rule: string;
+  no_touch_repos: string[];
+}
+
+export interface ApiExecutionProfileStatus {
+  active_profile: string | null;
+  base_rules: ApiExecutionRules;
+  effective_rules: ApiExecutionRules;
+  override_sources: Record<string, string>;
+  note: string;
 }
 
 // ── Endpoint functions ────────────────────────────────────────────────────
@@ -168,11 +270,23 @@ export const empireApi = {
   repos: () =>
     get<{ repos?: ApiRepo[] }>('/repos').then((d) => d.repos ?? []),
 
+  receipts: () =>
+    get<{ receipts?: ApiReceipt[] } | ApiReceipt[]>('/receipts').then((d) =>
+      Array.isArray(d) ? d : (d.receipts ?? []),
+    ),
+
+  watch: () =>
+    get<{ reports?: ApiWatchReport[] } | ApiWatchReport[]>('/watch').then((d) =>
+      Array.isArray(d) ? d : (d.reports ?? []),
+    ),
+
+  loopStatus: () => get<ApiLoopStatus>('/loop/status'),
+
+  executionProfile: () => get<ApiExecutionProfileStatus>('/hermes/execution/profile'),
+
   approveApproval: (id: number, humanNote: string) =>
     post(`/approvals/${id}/approve`, { human_note: humanNote }),
 
   rejectApproval: (id: number, humanNote: string) =>
     post(`/approvals/${id}/reject`, { human_note: humanNote }),
-
-  proofCanonicalFlow: () => post<ApiProofResult>('/proof/canonical-flow'),
 };

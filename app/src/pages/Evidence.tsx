@@ -6,6 +6,16 @@ import { canAdvance, STATE_CLAIMS, stateIndex } from '../lib/evidence';
 import { Eyebrow, SectionRule, EmptyNote } from '../components/ui';
 import { useHashRoute, parseRoute } from '../lib/router';
 
+function formatAt(value: string) {
+  return new Date(value).toLocaleString([], {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 function StateStrip({ current }: { current: EvidenceState }) {
   return (
     <div className="state-strip">
@@ -22,10 +32,30 @@ function StateStrip({ current }: { current: EvidenceState }) {
 }
 
 function RecordCard({ rec, missionObjective }: { rec: EvidenceRecord; missionObjective: string }) {
-  const { state, advanceEvidence } = useAppState();
+  const { state, advanceEvidence, apiStatus, proofVerified } = useAppState();
   const mission = state.missions.find((m) => m.evidenceRecordId === rec.id);
   const check = canAdvance(rec, { mission, tokens: state.tokens, boundary: state.boundary });
   const unresolvedContradictions = rec.contradictions.filter((c) => !c.resolved);
+  const demoReceipts = rec.receipts.filter((r) => r.demo);
+  const liveReceipts = rec.receipts.filter((r) => !r.demo);
+  const provenanceSummary =
+    liveReceipts.length > 0 && demoReceipts.length > 0
+      ? 'hybrid provenance'
+      : liveReceipts.length > 0
+        ? 'receipt-backed provenance'
+        : demoReceipts.length > 0
+          ? 'seed/demo provenance'
+          : 'no receipts attached';
+  const runtimeSummary =
+    apiStatus === 'online'
+      ? proofVerified
+        ? 'connected runtime · canonical proof confirmed'
+        : 'connected runtime · canonical proof pending'
+      : apiStatus === 'error'
+        ? 'live refresh degraded · inspect receipt timestamps'
+        : apiStatus === 'offline'
+          ? 'offline fallback · verify against receipts before claiming live truth'
+          : 'runtime handshake in progress';
 
   return (
     <div className="panel evidence-card" id={`rec-${rec.id}`}>
@@ -49,6 +79,11 @@ function RecordCard({ rec, missionObjective }: { rec: EvidenceRecord; missionObj
         </div>
       )}
 
+      <div className="callout callout--accent evidence-provenance-callout">
+        <div><span className="detail-label">PROVENANCE</span> {provenanceSummary}</div>
+        <div><span className="detail-label">RUNTIME</span> {runtimeSummary}</div>
+      </div>
+
       <div className="evidence-grid">
         <div>
           <div className="detail-label">RECEIPTS ({rec.receipts.length})</div>
@@ -57,7 +92,12 @@ function RecordCard({ rec, missionObjective }: { rec: EvidenceRecord; missionObj
           ) : (
             <ul className="detail-list">
               {rec.receipts.map((r) => (
-                <li key={r.id}><span className={`grade grade--${r.grade}`}>{r.grade}</span> {r.type} — {r.description}</li>
+                <li key={r.id}>
+                  <span className={`grade grade--${r.grade}`}>{r.grade}</span> {r.type} — {r.description}
+                  <div className="evidence-receipt-meta">
+                    {r.demo ? 'seed/demo receipt' : 'runtime-derived receipt'} · attached {formatAt(r.attachedAt)}
+                  </div>
+                </li>
               ))}
             </ul>
           )}
@@ -65,7 +105,12 @@ function RecordCard({ rec, missionObjective }: { rec: EvidenceRecord; missionObj
         <div>
           <div className="detail-label">VERIFICATION</div>
           {rec.verification ? (
-            <div>{rec.verification.method} · by {rec.verification.by} · reproducible: {rec.verification.reproducible ? 'yes' : 'no'}</div>
+            <div>
+              <div>{rec.verification.method} · by {rec.verification.by}</div>
+              <div className="evidence-meta-line">
+                recorded {formatAt(rec.verification.at)} · reproducible: {rec.verification.reproducible ? 'yes' : 'no'}
+              </div>
+            </div>
           ) : (
             <div className="muted">not yet independently verified</div>
           )}
@@ -73,7 +118,10 @@ function RecordCard({ rec, missionObjective }: { rec: EvidenceRecord; missionObj
         <div>
           <div className="detail-label">MEASUREMENT</div>
           {rec.measurement ? (
-            <div>{rec.measurement.gate} gate · {rec.measurement.reading} → <strong>{rec.measurement.verdict}</strong></div>
+            <div>
+              <div>{rec.measurement.gate} gate · {rec.measurement.reading} → <strong>{rec.measurement.verdict}</strong></div>
+              <div className="evidence-meta-line">recorded {formatAt(rec.measurement.at)}</div>
+            </div>
           ) : (
             <div className="muted">not yet measured against a gate</div>
           )}
@@ -123,7 +171,7 @@ function RecordCard({ rec, missionObjective }: { rec: EvidenceRecord; missionObj
 }
 
 export default function Evidence() {
-  const { state } = useAppState();
+  const { state, apiStatus, lastFetchedAt, proofVerified } = useAppState();
   const raw = useHashRoute();
   const { query } = parseRoute(raw);
   const focusRec = query.get('rec');
@@ -142,7 +190,13 @@ export default function Evidence() {
           <Eyebrow>SHEET 03 · EVIDENCE STATE MACHINE</Eyebrow>
           <h2 className="page-title">Evidence &amp; Verification</h2>
         </div>
-        <div className="page-note">anti-fake-progress made structural · no state may be skipped</div>
+        <div className="page-note">
+          anti-fake-progress made structural · no state may be skipped
+          {' · '}
+          runtime {apiStatus}
+          {lastFetchedAt ? ` · last sync ${formatAt(lastFetchedAt)}` : ''}
+          {apiStatus === 'online' ? ` · proof ${proofVerified ? 'verified' : 'pending'}` : ''}
+        </div>
       </header>
 
       <SectionRule>ALL EVIDENCE STATES</SectionRule>

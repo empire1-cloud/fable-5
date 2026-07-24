@@ -39,7 +39,7 @@ const KILL_TRIGGERS = [
 ];
 
 export default function Allocation() {
-  const { state, setAllocation } = useAppState();
+  const { state, setAllocation, apiStatus, liveBrief } = useAppState();
   const [resourceType, setResourceType] = useState<ResourceType>('cash');
   const resource = RESOURCES.find((r) => r.type === resourceType)!;
   const hasValidToken = validTokens(state.tokens).length > 0;
@@ -57,8 +57,13 @@ export default function Allocation() {
           <Eyebrow>SHEET 05 · CAPITAL &amp; RESOURCE ALLOCATION · ENGINE 08</Eyebrow>
           <h2 className="page-title">Capital &amp; Resource Allocation</h2>
         </div>
-        <div className="page-note">where does the next unit of scarce resource go?</div>
+        <div className="page-note">hybrid allocation view · live intent tokens, canonical target graph</div>
       </header>
+
+      <div className="callout callout--accent">
+        Allocation is a <strong>hybrid workspace</strong>: runtime status is <strong>{apiStatus}</strong>, founder-approved tokens and receipts can hydrate from Cofounder, but opportunity and node targets remain canonical shell data until allocation adapters are connected.
+        {liveBrief?.execution_mode ? ` Current execution mode: ${liveBrief.execution_mode}.` : ''}
+      </div>
 
       <SectionRule>ALLOCATE A RESOURCE</SectionRule>
       <div className="filter-bar">

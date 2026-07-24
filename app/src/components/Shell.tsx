@@ -18,10 +18,31 @@ const NAV: { to: string; num: string; label: string }[] = [
 ];
 
 export default function Shell({ route, children }: { route: string; children: React.ReactNode }) {
-  const { state } = useAppState();
+  const { state, apiStatus, lastFetchedAt, proofVerified } = useAppState();
   const snap = systemSnapshot(state);
   const { nodeId, setNodeId } = useSelectedNode();
   const [navOpen, setNavOpen] = useState(false);
+  const runtimeLabel =
+    apiStatus === 'online'
+      ? proofVerified
+        ? 'CONNECTED HYBRID STATE'
+        : 'CONNECTED STATE · PROOF PENDING'
+      : apiStatus === 'loading'
+        ? 'CONNECTING · HOLDING LOCAL STATE'
+        : apiStatus === 'error'
+          ? 'HYBRID STATE · LAST KNOWN + SEED'
+          : 'SEED FALLBACK STATE';
+  const runtimeMeta =
+    apiStatus === 'online' && lastFetchedAt
+      ? `last sync ${new Date(lastFetchedAt).toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        })}`
+      : apiStatus === 'offline'
+        ? 'API unreachable'
+        : apiStatus === 'error'
+          ? 'live refresh failed'
+          : 'awaiting runtime handshake';
 
   return (
     <div className="shell">
@@ -56,11 +77,19 @@ export default function Shell({ route, children }: { route: string; children: Re
           </select>
         </div>
         <div className="topbar-status" aria-label="System status">
-          <span className="status-dot" aria-hidden="true" /> LIVE DEMO STATE
+          <span className={`status-dot ${apiStatus !== 'online' ? 'status-dot--muted' : ''}`} aria-hidden="true" />
+          <span>{runtimeLabel}</span>
+          <span className="status-meta">{runtimeMeta}</span>
         </div>
       </header>
 
       <div className="status-strip" role="status">
+        <span>
+          runtime <strong>{apiStatus}</strong>
+        </span>
+        <span>
+          proof <strong>{proofVerified ? 'verified' : 'not yet verified'}</strong>
+        </span>
         <span><strong>{snap.activeOpportunities}</strong> active opportunities</span>
         <span><strong>{snap.activeMissions}</strong> active missions</span>
         <span><strong>{snap.pendingVerification}</strong> pending verification</span>

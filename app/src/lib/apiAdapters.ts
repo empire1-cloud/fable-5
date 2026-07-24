@@ -17,16 +17,20 @@
 import type {
   AutonomyLevel,
   CanonEntry,
+  EvidenceProvenance,
   EvidenceRecord,
   EvidenceState,
   IntentToken,
   Mission,
   MissionStatus,
+  Receipt,
+  ReceiptType,
 } from '../types';
 import type {
   ApiApproval,
   ApiManifest,
   ApiAgentEntry,
+  ApiReceipt,
   ApiSkillEntry,
   ApiTask,
 } from './empireApi';
@@ -73,8 +77,63 @@ function taskStatusToMission(status: string): MissionStatus {
     case 'open':    return 'QUEUED';
     case 'active':  return 'ACTIVE';
     case 'blocked': return 'BLOCKED';
+    case 'complete': return 'COMPLETE';
     default:        return 'QUEUED';
   }
+}
+
+function liveProvenance(detail: string, observedAt?: string): EvidenceProvenance {
+  return {
+    mode: 'live',
+    source: 'empire_auto_cofounder',
+    detail,
+    observedAt,
+  };
+}
+
+function classifyReceiptType(receipt: ApiReceipt): ReceiptType {
+  const changed = `${receipt.what_changed} ${receipt.proof_artifact}`.toLowerCase();
+  if (receipt.action_class.includes('test') || receipt.what_tested.trim() || receipt.test_result === 'pass' || receipt.test_result === 'fail') {
+    return 'test output';
+  }
+  if (receipt.reproducible_command.trim()) return 'reproducible check';
+  if (changed.includes('commit')) return 'commit';
+  if (changed.includes('deploy')) return 'deployment log';
+  if (changed.includes('api') || changed.includes('response')) return 'API response';
+  if (changed.includes('artifact') || receipt.verified) return 'verified artifact';
+  return 'diff';
+}
+
+function receiptGrade(receipt: ApiReceipt): 'A' | 'B' | 'C' {
+  if (receipt.verified) return 'A';
+  if (receipt.reproducible_command.trim() || receipt.test_result === 'pass') return 'B';
+  return 'C';
+}
+
+function adaptReceipt(receipt: ApiReceipt): Receipt {
+  const detailBits = [
+    receipt.what_changed.trim(),
+    receipt.what_tested.trim() ? `tested: ${receipt.what_tested.trim()}` : '',
+    receipt.test_result && receipt.test_result !== 'not_run' ? `result: ${receipt.test_result}` : '',
+    receipt.verification_basis.trim() ? `basis: ${receipt.verification_basis.trim()}` : '',
+  ].filter(Boolean);
+
+  return {
+    id: receipt.id,
+    type: classifyReceiptType(receipt),
+    description: detailBits.join(' · ') || receipt.proof_artifact || receipt.action_class || 'receipt on file',
+    grade: receiptGrade(receipt),
+    attachedAt: receipt.timestamp,
+    demo: false,
+    verified: receipt.verified,
+    reproducibleCommand: receipt.reproducible_command || undefined,
+    provenance: liveProvenance(
+      receipt.self_report_only
+        ? 'live receipt ledger entry (self-report only)'
+        : 'live receipt ledger entry',
+      receipt.timestamp,
+    ),
+  };
 }
 
 // ── Adapters ──────────────────────────────────────────────────────────────
@@ -109,6 +168,7 @@ export function adaptTask(task: ApiTask): Mission {
 export function adaptApproval(
   approval: ApiApproval,
   manifest: ApiManifest | undefined,
+  receipts: ApiReceipt[] = [],
 ): EvidenceRecord {
   const state = deriveEvidenceState(approval, manifest);
   const now = safeDate(approval.created_at);
@@ -145,6 +205,8 @@ export function adaptApproval(
     });
   }
 
+  const receiptRecords = receipts.map(adaptReceipt);
+
   return {
     id: `ER-approval-${approval.id}`,
     missionId: `M-plan-${approval.plan_id}`,
@@ -155,9 +217,15 @@ export function adaptApproval(
                : state === 'EXECUTED'  ? 0.65
                : state === 'AUTHORIZED'? 0.55
                : 0.45,
-    receipts: [],
+    receipts: receiptRecords,
     contradictions: [],
     audit: auditTrail,
+    provenance: liveProvenance(
+      manifest
+        ? `approval + manifest chain mapped from ${approval.repo}`
+        : `approval ledger mapped from ${approval.repo}`,
+      manifest?.consumed_at ?? manifest?.sealed_at ?? approval.resolved_at ?? approval.created_at,
+    ),
   };
 }
 
@@ -169,6 +237,7 @@ export function buildEvidenceForTask(
   task: ApiTask,
   approvals: ApiApproval[],
   manifests: ApiManifest[],
+  receipts: ApiReceipt[] = [],
 ): EvidenceRecord {
   // Find the matching approval by scanning for plan_id prefix match
   const taskApproval = approvals.find(
@@ -179,7 +248,11 @@ export function buildEvidenceForTask(
     const manifest = manifests.find(
       (m) => m.approval_id === taskApproval.id || m.plan_id === taskApproval.plan_id,
     );
-    const rec = adaptApproval(taskApproval, manifest);
+    const matchingReceipts = receipts.filter((receipt) =>
+      (manifest?.manifest_id && receipt.manifest_id === manifest.manifest_id) ||
+      (!!taskApproval.plan_id && receipt.plan_id === taskApproval.plan_id),
+    );
+    const rec = adaptApproval(taskApproval, manifest, matchingReceipts);
     // Override id to match the task's evidenceRecordId
     return { ...rec, id: `ER-task-${task.id}`, missionId: `M-${task.id}` };
   }
@@ -201,6 +274,7 @@ export function buildEvidenceForTask(
         action: 'task registered — no approval yet',
       },
     ],
+    provenance: liveProvenance('task queue entry without approval yet', new Date().toISOString()),
   };
 }
 

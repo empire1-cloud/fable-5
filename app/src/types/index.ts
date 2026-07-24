@@ -90,7 +90,7 @@ export interface Decision {
   nextVerificationEvent: string;
 }
 
-export type MissionStatus = 'QUEUED' | 'ACTIVE' | 'BLOCKED';
+export type MissionStatus = 'QUEUED' | 'ACTIVE' | 'BLOCKED' | 'COMPLETE';
 
 export interface Mission {
   id: string;
@@ -136,6 +136,15 @@ export type ReceiptType =
   | 'reproducible check'
   | 'verified artifact';
 
+export type ProvenanceMode = 'live' | 'derived' | 'seed' | 'empty';
+
+export interface EvidenceProvenance {
+  mode: ProvenanceMode;
+  source: string;
+  detail: string;
+  observedAt?: string;
+}
+
 export interface Receipt {
   id: string;
   type: ReceiptType;
@@ -143,6 +152,9 @@ export interface Receipt {
   grade: EvidenceGrade;
   attachedAt: string; // ISO datetime
   demo: boolean;
+  verified?: boolean;
+  reproducibleCommand?: string;
+  provenance?: EvidenceProvenance;
 }
 
 export interface Contradiction {
@@ -185,6 +197,7 @@ export interface EvidenceRecord {
   verification?: VerificationRecord;
   measurement?: MeasurementRecord;
   audit: AuditEvent[];
+  provenance?: EvidenceProvenance;
 }
 
 export type GenomeMaturity = 'Draft' | 'Tested' | 'Verified' | 'Replication-Ready';

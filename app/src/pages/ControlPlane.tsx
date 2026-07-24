@@ -11,6 +11,7 @@ const STATUS_TONE: Record<MissionStatus, 'ok' | 'warn' | 'bad'> = {
   ACTIVE: 'ok',
   QUEUED: 'warn',
   BLOCKED: 'bad',
+  COMPLETE: 'ok',
 };
 
 function SignalRow({ id, source, category, summary, confidence, reliability, timestamp }: (typeof SIGNALS)[number]) {
@@ -118,6 +119,7 @@ export default function ControlPlane() {
             <option value="ACTIVE">Active</option>
             <option value="QUEUED">Queued</option>
             <option value="BLOCKED">Blocked</option>
+            <option value="COMPLETE">Complete</option>
           </select>
         </label>
         <label>
