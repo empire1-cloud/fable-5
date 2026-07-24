@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { SIGNALS, OPPORTUNITIES } from '../data/controlPlane';
 import { useAppState } from '../state/AppState';
-import type { EngineId, Mission, MissionStatus } from '../types';
+import type { EngineId, EvidenceChainStatus, Mission, MissionStatus } from '../types';
 import { ENGINE_MAP } from '../data/engines';
 import { Eyebrow, Chip, Badge, SectionRule, EmptyNote } from '../components/ui';
 import { navigate } from '../lib/router';
@@ -12,6 +12,13 @@ const STATUS_TONE: Record<MissionStatus, 'ok' | 'warn' | 'bad'> = {
   QUEUED: 'warn',
   BLOCKED: 'bad',
   COMPLETE: 'ok',
+};
+
+const CHAIN_TONE: Record<EvidenceChainStatus, 'ok' | 'warn' | 'bad' | 'neutral'> = {
+  passed: 'ok',
+  waiting: 'warn',
+  blocked: 'bad',
+  not_applicable: 'neutral',
 };
 
 function SignalRow({ id, source, category, summary, confidence, reliability, timestamp }: (typeof SIGNALS)[number]) {
@@ -71,6 +78,7 @@ export default function ControlPlane() {
   const [statusFilter, setStatusFilter] = useState<MissionStatus | 'ALL'>('ALL');
   const [engineFilter, setEngineFilter] = useState<EngineId | 'ALL'>('ALL');
   const [inspecting, setInspecting] = useState<Mission | null>(null);
+  const inspectingEvidence = inspecting ? state.evidence[inspecting.evidenceRecordId] : undefined;
 
   const sortedOpps = useMemo(() => [...OPPORTUNITIES].sort((a, b) => b.score - a.score), []);
 
@@ -170,6 +178,22 @@ export default function ControlPlane() {
             {inspecting.financial && (
               <div className="callout callout--accent">
                 Financial mission — execution beyond AUTHORIZE requires a valid Founder-Approved Intent Token. See Governance.
+              </div>
+            )}
+            {inspectingEvidence?.chain && inspectingEvidence.chain.length > 0 && (
+              <div className="mission-chain-preview">
+                <div className="detail-label">LIVE CHAIN</div>
+                <div className="chain-timeline chain-timeline--compact">
+                  {inspectingEvidence.chain.map((step) => (
+                    <div key={step.id} className="chain-step">
+                      <Badge tone={CHAIN_TONE[step.status]}>{step.status.replace('_', ' ')}</Badge>
+                      <div>
+                        <div className="chain-step-title">{step.label}</div>
+                        <div className="chain-step-detail">{step.detail}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
             <button

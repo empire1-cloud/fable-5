@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { useAppState } from '../state/AppState';
 import { EVIDENCE_STATES } from '../types';
-import type { EvidenceRecord, EvidenceState } from '../types';
+import type { EvidenceChainStatus, EvidenceRecord, EvidenceState } from '../types';
 import { canAdvance, STATE_CLAIMS, stateIndex } from '../lib/evidence';
-import { Eyebrow, SectionRule, EmptyNote } from '../components/ui';
+import { Badge, Eyebrow, SectionRule, EmptyNote } from '../components/ui';
 import { useHashRoute, parseRoute } from '../lib/router';
 
 function formatAt(value: string) {
@@ -27,6 +27,40 @@ function StateStrip({ current }: { current: EvidenceState }) {
           {i < EVIDENCE_STATES.length - 1 && <span className="strip-arrow">→</span>}
         </React.Fragment>
       ))}
+    </div>
+  );
+}
+
+const CHAIN_TONE: Record<EvidenceChainStatus, 'ok' | 'warn' | 'bad' | 'neutral'> = {
+  passed: 'ok',
+  waiting: 'warn',
+  blocked: 'bad',
+  not_applicable: 'neutral',
+};
+
+function ChainTimeline({ rec }: { rec: EvidenceRecord }) {
+  if (!rec.chain || rec.chain.length === 0) return null;
+
+  return (
+    <div className="evidence-chain">
+      <div className="detail-label">MISSION {'->'} APPROVAL {'->'} EXECUTION {'->'} RECEIPT CHAIN</div>
+      <div className="chain-timeline">
+        {rec.chain.map((step) => (
+          <div key={step.id} className="chain-step">
+            <Badge tone={CHAIN_TONE[step.status]}>{step.status.replace('_', ' ')}</Badge>
+            <div>
+              <div className="chain-step-title">
+                {step.label}
+                {step.at ? <span className="chain-step-at"> · {formatAt(step.at)}</span> : null}
+              </div>
+              <div className="chain-step-detail">
+                <span>{step.source}</span>
+                <span>{step.detail}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -83,6 +117,8 @@ function RecordCard({ rec, missionObjective }: { rec: EvidenceRecord; missionObj
         <div><span className="detail-label">PROVENANCE</span> {provenanceSummary}</div>
         <div><span className="detail-label">RUNTIME</span> {runtimeSummary}</div>
       </div>
+
+      <ChainTimeline rec={rec} />
 
       <div className="evidence-grid">
         <div>

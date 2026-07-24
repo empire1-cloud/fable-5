@@ -460,6 +460,11 @@ a { color: var(--accent); }
 .mission-row--body { width: 100%; background: none; border-left: none; border-right: none; border-top: none; color: var(--ink); cursor: pointer; text-align: left; }
 .mission-row--body:hover { background: var(--accent-05); }
 .mission-objective { color: var(--ink-80); }
+.mission-chain-preview {
+  margin: 16px 0;
+  padding-top: 14px;
+  border-top: 1px dashed var(--edge-faint);
+}
 
 .inspector-overlay {
   position: fixed;
@@ -510,6 +515,52 @@ a { color: var(--accent); }
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px 16px;
   margin-bottom: 14px;
+}
+.evidence-chain {
+  margin: 14px 0;
+  padding: 14px;
+  border: 1px solid var(--edge-faint);
+  background: rgba(127, 180, 220, 0.04);
+}
+.chain-timeline {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
+}
+.chain-timeline--compact {
+  grid-template-columns: 1fr;
+}
+.chain-step {
+  display: grid;
+  grid-template-columns: 116px 1fr;
+  gap: 10px;
+  align-items: start;
+  min-width: 0;
+  padding: 10px 0;
+  border-bottom: 1px dotted var(--dot-20);
+}
+.chain-step:last-child {
+  border-bottom: none;
+}
+.chain-step-title {
+  font-size: 12.5px;
+  color: var(--ink-85);
+  line-height: 1.35;
+}
+.chain-step-at {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-45);
+  white-space: nowrap;
+}
+.chain-step-detail {
+  display: grid;
+  gap: 2px;
+  margin-top: 3px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ink-50);
+  line-height: 1.5;
 }
 .evidence-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin: 14px 0; }
 .evidence-receipt-meta,
@@ -807,9 +858,10 @@ input[type="range"] { accent-color: var(--accent); width: 100%; }
   }
   .shell-nav--open { transform: translateX(0); }
   .status-strip { overflow-x: auto; flex-wrap: nowrap; }
-  .engine-grid--pipeline, .engine-grid--single-2, .snapshot-grid, .runtime-grid, .workspace-links, .genome-groups, .gates-grid, .genome-picker, .engine-detail-grid, .opportunity-grid, .evidence-grid, .evidence-provenance-callout {
+  .engine-grid--pipeline, .engine-grid--single-2, .snapshot-grid, .runtime-grid, .workspace-links, .genome-groups, .gates-grid, .genome-picker, .engine-detail-grid, .opportunity-grid, .evidence-grid, .evidence-provenance-callout, .chain-timeline {
     grid-template-columns: 1fr;
   }
+  .chain-step { grid-template-columns: 1fr; }
   .mission-row { grid-template-columns: 1fr; gap: 4px; }
   .mission-row--head { display: none; }
   .alloc-slider-row { grid-template-columns: 1fr; gap: 6px; }
