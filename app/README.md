@@ -21,7 +21,8 @@ npm install
 npm run dev       # http://localhost:5173
 ```
 
-For full functionality including billing (SHEET 7), you must also run the backend server:
+For full functionality including billing (SHEET 7), you must also run the
+backend server:
 
 ```sh
 # In a separate terminal, from the fable-5 root:
@@ -51,7 +52,7 @@ This is a **local-first product MVP**, architected to be backend-ready but
 not pretending to have a backend today:
 
 - **Real**: all navigation, filtering, inspection, the evidence state-machine
-  transition rules, autonomy-boundary checks, Intent Token validity checks,
+  transition rules, autonomy-boundary checks, Token validity checks,
   resource-allocation math, and `localStorage` persistence of demo state and
   preferences.
 - **Simulated demo data**: signals, opportunities, missions, evidence
@@ -62,8 +63,9 @@ not pretending to have a backend today:
   stay blocked without a valid, unexpired, unrevoked Intent Token, exactly
   as the design requires (**NO VALID TOKEN → NO SPEND**).
 - **Billing integration**: The billing workspace (SHEET 7) integrates with a
-  backend service (see `backend/` directory) to create Stripe Checkout Sessions.
-  Without the backend running, the billing buttons will show an error.
+  backend service (see `backend/` directory) to create Stripe Checkout
+  Sessions. Without the backend running, the billing buttons will show an
+  error.
 
 ## Architecture
 
@@ -129,5 +131,10 @@ Selections persist via `localStorage` (`fable5.draftingRoom`).
 ## Known limitations (by design, for this MVP)
 
 - Demo data is illustrative (not live market/company data).
-- The hash router has no nested routes or code-splitting — fine at this scale; to add routes, edit `src/lib/router.tsx`.
-- `localStorage` is per-browser; there is no cross-device sync; for server-side persistence, integrate with the backend API.
+- The hash router has no nested routes or code-splitting — fine at this scale; revisit if the app grows materially.
+- `localStorage` is per-browser; there is no cross-device sync.
+
+## Extending the MVP
+
+- To add new routes, edit `src/lib/router.tsx`.
+- To add persistent storage, integrate with the backend API (see `backend/` directory).
