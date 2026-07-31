@@ -6,16 +6,16 @@ export const canonEntries: CanonEntry[] = [
   {
     id: "canon-001",
     kind: "pattern",
-    body: "SaaS wedge with usage-based expansion clears the NRR gate by month 4 when reminder-sequence timing is localized to WhatsApp-first behavior.",
-    sourceOutcomeRef: "ev-001",
-    createdAt: "2026-07-11T09:15:00Z",
+    title: "SaaS wedge with usage-based expansion clears the NRR gate by month 4 when reminder-sequence timing is localized to WhatsApp-first behavior.",
+    origin: "Outcome ev-001",
+    confidence: 0.95,
   },
   {
     id: "canon-002",
     kind: "negative intelligence",
-    body: "AI outcome-verification products in this ICP failed prior kill-cycle due to unverifiable self-reported baselines — retest requires independently sourced ground truth before re-authorizing spend.",
-    sourceOutcomeRef: "opp-003",
-    createdAt: "2026-05-20T00:00:00Z",
+    title: "AI outcome-verification products in this ICP failed prior kill-cycle due to unverifiable self-reported baselines — retest requires independently sourced ground truth before re-authorizing spend.",
+    origin: "Outcome opp-003",
+    confidence: 0.9,
   },
 ];
 
@@ -23,7 +23,11 @@ export const operatingPrimitives: OperatingPrimitive[] = [
   {
     id: "prim-001",
     name: "WhatsApp-first reminder sequencer",
-    provenBy: ["ev-001"],
-    reusableAcross: ["genome-latam-fintech"],
+    origin: "Outcome ev-001",
+    evidence: "ev-001 shows 40% increase in engagement",
+    successConditions: ["message delivered", "user opens within 1 hour"],
+    failureConditions: ["message blocked", "user marks as spam"],
+    reusableIn: ["genome-latam-fintech"],
+    confidence: 0.85,
   },
 ];

@@ -21,6 +21,20 @@ npm install
 npm run dev       # http://localhost:5173
 ```
 
+For full functionality including billing (SHEET 7), you must also run the backend server:
+
+```sh
+# In a separate terminal, from the fable-5 root:
+cd backend
+npm install
+npm run dev       # http://localhost:3001
+```
+
+Then set the frontend API base URL by creating a `.env` file in `app/`:
+```
+VITE_API_BASE=http://localhost:3001
+```
+
 Production build:
 
 ```sh
@@ -28,8 +42,8 @@ npm run build      # runs `tsc --noEmit` then `vite build` → dist/
 npm run preview    # serve the built dist/ locally
 ```
 
-`dist/` is fully static (uses `base: './'`) — deployable to any static host,
-or opened via `npm run preview` / any local file server. No backend.
+The `dist/` folder is static except for the billing feature, which requires
+the backend to be running and pointed to by `VITE_API_BASE`.
 
 ## What's real vs. simulated
 
@@ -47,21 +61,24 @@ not pretending to have a backend today:
   executed anything. Financial missions and financial resource allocation
   stay blocked without a valid, unexpired, unrevoked Intent Token, exactly
   as the design requires (**NO VALID TOKEN → NO SPEND**).
+- **Billing integration**: The billing workspace (SHEET 7) integrates with a
+  backend service (see `backend/` directory) to create Stripe Checkout Sessions.
+  Without the backend running, the billing buttons will show an error.
 
 ## Architecture
 
 ```
 src/
   types/        Domain model (Engine, Signal, Opportunity, Mission,
-                 EvidenceRecord, CompanyGenome, MarketNode, IntentToken, …)
+               EvidenceRecord, CompanyGenome, MarketNode, IntentToken, …)
   data/         Seed/demo data only — no components import raw JSON inline
   lib/          Pure logic: evidence state machine, governance/autonomy
-                 rules, selectors, hash router
+               rules, selectors, hash router
   state/        React state: AppState (mutable demo state + localStorage),
-                 draftingRoom (palette/texture/grid), selection (node context)
+               draftingRoom (palette/texture/grid), selection (node context)
   components/   Shared UI: Shell (app frame + nav), DraftingRoomPanel, ui.tsx
   pages/        One file per workspace (Home, Blueprint, ControlPlane,
-                 Evidence, Genomes, Allocation, Governance)
+               Evidence, Genomes, Allocation, Governance, Billing)
   styles/       app.css — all styling, CSS custom properties for theming
 ```
 
@@ -79,6 +96,7 @@ dependency, works from `file://` or any static host without server config.
 | `/genomes` | 4 | Company Genome sections, maturity ladder, proven-vs-unproven evidence coverage |
 | `/allocation` | 5 | Per-resource allocation sliders, portfolio view, typed economic gates, kill logic |
 | `/governance` | 6 | Autonomy ladder with an adjustable granted boundary, Intent Tokens (revocable), canon/memory, and the Drafting Room reference |
+| `/billing/*` | 7 | Subscription and billing management (requires backend server) |
 
 ## Drafting Room (visual controls)
 
@@ -110,7 +128,6 @@ Selections persist via `localStorage` (`fable5.draftingRoom`).
 
 ## Known limitations (by design, for this MVP)
 
-- No backend, no auth, no billing — intentionally out of scope for this pass.
 - Demo data is illustrative, not connected to any real market/company data.
 - The hash router has no nested routes or code-splitting — fine at this
   scale; revisit if the app grows materially.

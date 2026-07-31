@@ -307,3 +307,12 @@ export interface OperatingPrimitive {
   reusableIn: string[];
   confidence: number;
 }
+
+// Re-export allocation types
+export type { AllocationScore, AllocationTarget } from "./allocation";
+
+// Re-export intent token types
+export type { IntentToken, IntentTokenAuditEntry, IntentTokenRequest } from "./intentToken";
+
+// Re-export enums
+export type { TokenEnvironment, TokenRecurrence } from "./enums";
