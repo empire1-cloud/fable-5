@@ -128,7 +128,7 @@ Selections persist via `localStorage` (`fable5.draftingRoom`).
 
 ## Known limitations (by design, for this MVP)
 
-- Demo data is illustrative, not connected to any real market/company data.
+- Demo data is illustrative (not live market/company data).
 - The hash router has no nested routes or code-splitting — fine at this
   scale; revisit if the app grows materially.
 - `localStorage` is per-browser; there is no cross-device sync.
