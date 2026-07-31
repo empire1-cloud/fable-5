@@ -3,14 +3,6 @@ import cors from 'cors';
 import Stripe from 'stripe';
 import dotenv from 'dotenv';
 import { v4 as uuidv4 } from 'uuid';
-import {
-  simulationService,
-  generateDemoData,
-  generateStripeEvents,
-  simulateScenario,
-  resetData,
-  getStats
-} from './simulation.service';
 
 // Load environment variables
 dotenv.config();
@@ -192,7 +184,6 @@ const validateIntentToken = (token: IntentToken | undefined, request: { action: 
 
 // Create audit event
 const createAuditEvent = (actor: string, action: string, detail?: string): AuditEvent => ({
-  at: string, action: string, detail?: string): AuditEvent => ({
   at: nowISO(),
   actor,
   action,
@@ -371,6 +362,37 @@ app.get('/api/health', (req: Request, res: Response) => {
   });
 });
 
+// Create Stripe Checkout Session for subscription plans
+app.post('/api/payments/checkout-session', async (req: Request, res: Response) => {
+  try {
+    const { planType } = req.body;
+    if (!planType) return res.status(400).json({ error: 'planType is required' });
+
+    const priceMap: Record<string, string> = {
+      free: process.env.STRIPE_PRICE_FREE || 'price_123_free',
+      pro: process.env.STRIPE_PRICE_PRO || 'price_123_pro',
+      enterprise: process.env.STRIPE_PRICE_ENTERPRISE || 'price_123_enterprise',
+    };
+
+    const priceId = priceMap[planType];
+    if (!priceId) return res.status(400).json({ error: 'Invalid plan type' });
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [{ price: priceId, quantity: 1 }],
+      mode: 'subscription',
+      success_url: `${process.env.API_BASE_URL || 'http://localhost:5173'}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.API_BASE_URL || 'http://localhost:5173'}/billing/cancel`,
+      metadata: { plan_type: planType },
+    });
+
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error('Error creating checkout session:', err);
+    res.status(500).json({ error: 'Failed to create checkout session' });
+  }
+});
+
 // Stripe webhook endpoint - THE CORE OF THE ELITE IMPLEMENTATION
 app.post('/api/payments/webhook', express.raw({type: 'application/json'}), validateStripeWebhook,
   async (req: Request, res: Response) => {
@@ -389,88 +411,59 @@ app.post('/api/payments/webhook', express.raw({type: 'application/json'}), valid
         case 'checkout.session.completed': {
           const session = event.data.object as Stripe.Checkout.Session;
 
-          // For completed checkout sessions, we need to authorize payment
-          // This requires an Intent Token - in a real system, we'd get this from the user/context
-          // For demo, we'll create a mock intent token or simulate validation
+          // For product monetization (billing workspace), we process payments through the evidence state machine
+          # BUT we do NOT require Intent Token validation, as clarified by the user:
+          # "NO VALID TOKEN → NO SPEND applies only to internal financial actions within governance system, NOT to product monetization"
 
-          // Simulate intent token validation (in real app, this would come from auth context)
-          const mockIntentToken: IntentToken = {
-            id: `fit_billing_${Date.now()}`,
-            approvedBy: 'founder',
-            action: 'process_payment',
-            vendorOrSystem: 'stripe',
-            maxAmount: 10000, // $100 max
-            currency: 'USD',
-            expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 year
-            recurrence: 'one-shot',
-            environment: 'prod',
-            revoked: false,
-            audit: []
-          };
+          // Process the payment through the evidence state machine
+          advanceEvidenceState(evidence.id, 'AUTHORIZED', 'Payment authorized for processing', 'system');
+          advanceEvidenceState(evidence.id, 'EXECUTED', 'Payment processed by Stripe', 'stripe-system');
 
-          // Validate the intent token (ANTI-SILENT SPEND principle)
-          const validation = validateIntentToken(mockIntentToken, {
-            action: 'process_payment',
-            amount: evidence.amount || 0,
-            currency: evidence.currency || 'USD',
-            vendorOrSystem: 'stripe',
-            environment: 'prod'
+          // Add receipt for the payment
+          evidence.receipts.push({
+            id: `rcpt_${uuidv4()}`,
+            type: 'stripe_payment' as ReceiptType,
+            description: `Payment of ${evidence.amount}${evidence.currency} for ${evidence.title}`,
+            grade: 'A',
+            attachedAt: new Date().toISOString(),
+            demo: false
           });
 
-          if (validation.valid) {
-            // AUTHORIZED: Intent token is valid
-            advanceEvidenceState(evidence.id, 'AUTHORIZED', 'Intent token validation passed', 'governance-system');
+          advanceEvidenceState(evidence.id, 'RECEIPTED', 'Payment receipt attached', 'system');
 
-            // Simulate execution (payment processed by Stripe)
-            advanceEvidenceState(evidence.id, 'EXECUTED', 'Payment processed by Stripe', 'stripe-system');
+          // VERIFIED: Stripe webhook serves as verification
+          evidence.verification = {
+            method: 'stripe_webhook_delivery',
+            by: 'stripe',
+            reproducible: true,
+            at: new Date().toISOString()
+          };
+          advanceEvidenceState(evidence.id, 'VERIFIED', 'Verified via Stripe webhook', 'system');
 
-            // Add receipt for the payment
-            evidence.receipts.push({
-              id: `rcpt_${uuidv4()}`,
-              type: 'stripe_payment' as ReceiptType,
-              description: `Payment of ${evidence.amount}${evidence.currency} for ${evidence.title}`,
-              grade: 'A',
-              attachedAt: new Date().toISOString(),
-              demo: false
-            });
+          // MEASURED: Measure against success criteria (100% successful)
+          evidence.measurement = {
+            gate: 'payment_success_threshold',
+            reading: '100',
+            verdict: 'PASS',
+            at: new Date().toISOString()
+          };
+          advanceEvidenceState(evidence.id, 'MEASURED', 'Payment successfully processed', 'system');
 
-            advanceEvidenceState(evidence.id, 'RECEIPTED', 'Payment receipt attached', 'system');
+          // LEARNED: Extract learning from successful payment
+          evidence.learning = {
+            confidenceDelta: 0.03,
+            pattern: `Successful payment processing for amount ${evidence.amount}${evidence.currency} via ${evidence.stripeEventType}`
+          };
+          advanceEvidenceState(evidence.id, 'LEARNED', 'Learning extracted from successful payment', 'system');
 
-            // VERIFIED: Stripe webhook serves as verification
-            evidence.verification = {
-              method: 'stripe_webhook_delivery',
-              by: 'stripe',
-              reproducible: true,
-              at: new Date().toISOString()
-            };
-            advanceEvidenceState(evidence.id, 'VERIFIED', 'Verified via Stripe webhook', 'system');
+          // CANONIZED: Establish this as a canonical pattern for similar payments
+          evidence.canonization = {
+            canonEntryId: `canon-payment-success-${evidence.id.substring(0, 8)}`,
+            note: `Canonical pattern for successful ${evidence.amount}${evidence.currency} payments via Stripe Checkout`
+          };
+          advanceEvidenceState(evidence.id, 'CANONIZED', 'Elevated to canonical payment pattern', 'system');
 
-            // MEASURED: Measure against success criteria (100% successful` }`
-            };
-            advanceEvidenceState(evidence.id, 'LEARNED', 'Learning extracted from successful payment', 'system');
-
-            // CANONIZED: Establish this as a canonical pattern for similar payments
-            evidence.canonization = {
-              canonEntryId: `canon-payment-success-${evidence.id.substring(0, 8)}`,
-              note: `Canonical pattern for successful ${evidence.amount}${evidence.currency} payments via Stripe Checkout`
-            };
-            advanceEvidenceState(evidence.id, 'CANONIZED', 'Elevated to canonical payment pattern', 'system');
-
-            console.log(`✅ Payment processed and evidence canonized: ${evidence.id}`);
-          } else {
-            // INTENT TOKEN INVALID - BLOCK PER ANTI-SILENT SPEND PRINCIPLE
-            evidence.contradictions.push({
-              id: `ct_${uuidv4()}`,
-              description: validation.reason || 'Intent token validation failed',
-              resolved: false
-            });
-
-            // Add audit for failure
-            evidence.audit.push(createAuditEvent('governance-system', 'authorization_failed', validation.reason));
-
-            // Mark as blocked/failed state (we could add a FAILED state, but for now mark as contradiction)
-            console.log(`❌ Payment blocked: ${validation.reason}`);
-          }
+          console.log(`✅ Payment processed and evidence canonized: ${evidence.id}`);
 
           break;
         }
@@ -632,25 +625,6 @@ app.get('/api/billing/stats', (req: Request, res: Response) => {
 });
 
 // ====================
-// SIMULATION ENDPOINTS
-// ====================
-
-// Generate and store demo data for all workspaces
-app.post('/api/simulation/demo-data', generateDemoData);
-
-// Generate Stripe events for testing evidence flow
-app.post('/api/simulation/stripe-events', generateStripeEvents);
-
-// Simulate a business scenario
-app.post('/api/simulation/scenario/:scenario', simulateScenario);
-
-// Reset all simulation data
-app.post('/api/simulation/reset', resetData);
-
-// Get current simulation stats
-app.get('/api/simulation/stats', getStats);
-
-// ====================
 // START SERVER
 // ====================
 
@@ -662,27 +636,22 @@ app.listen(port, () => {
   console.log(`  GET  /api/evidence/billing`);
   console.log(`  GET  /api/evidence/billing/:id`);
   console.log(`  GET  /api/billing/stats`);
-  console.log(`  POST /api/simulation/demo-data`);
-  console.log(`  POST /api/simulation/stripe-events`);
-  console.log(`  POST /api/simulation/scenario/:scenario`);
-  console.log(`  POST /api/simulation/reset`);
-  console.log(`  GET  /api/simulation/stats`);
   console.log(`💡 Elite Feature: Every Stripe event becomes an evidence record flowing through the complete Fable-5 Evidence State Machine`);
-  console.log(`🎲 Simulation: Generate demo data, test events, and business scenarios`);
 });
 
 // ====================
 // DEMO DATA INITIALIZATION
 // ====================
 
-// Initialize with some demo intent tokens for testing
+// Initialize with some demo intent tokens for testing (for governance system internal actions only)
 const initializeDemoData = () => {
-  // Add a demo intent token for billing operations
+  // Add a demo intent token for GOVERNANCE SYSTEM internal financial actions ONLY
+  // (Not for product monetization/billing - that's handled separately per user clarification)
   intentTokens.push({
-    id: 'fit_billing_demo_001',
+    id: 'fit_governance_demo_001',
     approvedBy: 'founder',
-    action: 'process_payment',
-    vendorOrSystem: 'stripe',
+    action: 'internal_governance_action',
+    vendorOrSystem: 'internal_system',
     maxAmount: 10000,
     currency: 'USD',
     expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
@@ -694,15 +663,15 @@ const initializeDemoData = () => {
         at: new Date().toISOString(),
         actor: 'founder',
         action: 'issued',
-        detail: 'Issued for billing operations'
+        detail: 'Issued for internal governance system financial actions ONLY'
       }
     ]
   });
 
-  console.log('🔧 Demo data initialized');
+  console.log('🔧 Demo data initialized for governance system internal actions');
 };
 
-// Initialize demo data on startup
+// Initialize demo data on startup (for governance system internal actions)
 initializeDemoData();
 
 // Export for testing (if needed)
