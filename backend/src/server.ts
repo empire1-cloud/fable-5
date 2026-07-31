@@ -3,6 +3,14 @@ import cors from 'cors';
 import Stripe from 'stripe';
 import dotenv from 'dotenv';
 import { v4 as uuidv4 } from 'uuid';
+import {
+  simulationService,
+  generateDemoData,
+  generateStripeEvents,
+  simulateScenario,
+  resetData,
+  getStats
+} from './simulation.service';
 
 // Load environment variables
 dotenv.config();
@@ -184,6 +192,7 @@ const validateIntentToken = (token: IntentToken | undefined, request: { action: 
 
 // Create audit event
 const createAuditEvent = (actor: string, action: string, detail?: string): AuditEvent => ({
+  at: string, action: string, detail?: string): AuditEvent => ({
   at: nowISO(),
   actor,
   action,
@@ -436,19 +445,7 @@ app.post('/api/payments/webhook', express.raw({type: 'application/json'}), valid
             };
             advanceEvidenceState(evidence.id, 'VERIFIED', 'Verified via Stripe webhook', 'system');
 
-            // MEASURED: Measure against success criteria (100% successful processing)
-            evidence.measurement = {
-              gate: 'payment_success_threshold',
-              reading: '100',
-              verdict: 'PASS',
-              at: new Date().toISOString()
-            };
-            advanceEvidenceState(evidence.id, 'MEASURED', 'Payment successfully processed', 'system');
-
-            // LEARNED: Extract learning from successful payment
-            evidence.learning = {
-              confidenceDelta: 0.03,
-              pattern: `Successful payment processing for amount ${evidence.amount}${evidence.currency} via ${evidence.stripeEventType}`
+            // MEASURED: Measure against success criteria (100% successful` }`
             };
             advanceEvidenceState(evidence.id, 'LEARNED', 'Learning extracted from successful payment', 'system');
 
@@ -635,6 +632,25 @@ app.get('/api/billing/stats', (req: Request, res: Response) => {
 });
 
 // ====================
+// SIMULATION ENDPOINTS
+// ====================
+
+// Generate and store demo data for all workspaces
+app.post('/api/simulation/demo-data', generateDemoData);
+
+// Generate Stripe events for testing evidence flow
+app.post('/api/simulation/stripe-events', generateStripeEvents);
+
+// Simulate a business scenario
+app.post('/api/simulation/scenario/:scenario', simulateScenario);
+
+// Reset all simulation data
+app.post('/api/simulation/reset', resetData);
+
+// Get current simulation stats
+app.get('/api/simulation/stats', getStats);
+
+// ====================
 // START SERVER
 // ====================
 
@@ -646,7 +662,13 @@ app.listen(port, () => {
   console.log(`  GET  /api/evidence/billing`);
   console.log(`  GET  /api/evidence/billing/:id`);
   console.log(`  GET  /api/billing/stats`);
+  console.log(`  POST /api/simulation/demo-data`);
+  console.log(`  POST /api/simulation/stripe-events`);
+  console.log(`  POST /api/simulation/scenario/:scenario`);
+  console.log(`  POST /api/simulation/reset`);
+  console.log(`  GET  /api/simulation/stats`);
   console.log(`💡 Elite Feature: Every Stripe event becomes an evidence record flowing through the complete Fable-5 Evidence State Machine`);
+  console.log(`🎲 Simulation: Generate demo data, test events, and business scenarios`);
 });
 
 // ====================
