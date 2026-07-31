@@ -1,0 +1,47 @@
+// DEMO DATA — Market Nodes (genome × geography).
+import type { MarketNode } from "../types";
+
+export const marketNodes: MarketNode[] = [
+  {
+    id: "node-latam-fintech-mx",
+    genomeId: "genome-latam-fintech",
+    geography: "Mexico",
+    vertical: "SMB fintech / collections",
+    segment: "5-50 employee B2B SMBs",
+    offer: "Collections copilot — WhatsApp-first",
+    localModules: ["language: es-MX", "currency: MXN", "payments: local rail integration", "compliance: MX collections law"],
+    typedGate: "SaaS",
+    evidenceState: "CANONIZED",
+    autonomyLevel: "L4",
+    resourceAllocation: 85000,
+    status: "Scaling",
+  },
+  {
+    id: "node-latam-fintech-co",
+    genomeId: "genome-latam-fintech",
+    geography: "Colombia",
+    vertical: "SMB fintech / collections",
+    segment: "5-50 employee B2B SMBs",
+    offer: "Collections copilot — WhatsApp-first",
+    localModules: ["language: es-CO", "currency: COP", "payments: local rail integration (pending)", "compliance: CO collections law (pending review)"],
+    typedGate: "SaaS",
+    evidenceState: "RECEIPTED",
+    autonomyLevel: "L2",
+    resourceAllocation: 12000,
+    status: "Validating",
+  },
+  {
+    id: "node-ai-verify-us",
+    genomeId: "genome-ai-outcome-verify",
+    geography: "United States",
+    vertical: "AI product infrastructure",
+    segment: "Mid-market SaaS engineering teams",
+    offer: "Outcome verification API",
+    localModules: ["language: en-US", "currency: USD", "compliance: unmodeled"],
+    typedGate: "AI Product",
+    evidenceState: "PROPOSED",
+    autonomyLevel: "L1",
+    resourceAllocation: 4000,
+    status: "Exploring",
+  },
+];

@@ -1,0 +1,154 @@
+import { useState } from "react";
+import { NavLink, Route, Routes } from "react-router-dom";
+import { Home } from "./pages/Home";
+import { Blueprint } from "./pages/Blueprint";
+import { ControlPlane } from "./pages/ControlPlane";
+import { Evidence } from "./pages/Evidence";
+import { Genomes } from "./pages/Genomes";
+import { Allocation } from "./pages/Allocation";
+import { Governance } from "./pages/Governance";
+import { Login } from "./pages/Login";
+import { useTheme } from "./hooks/useTheme";
+import { useAutonomyLevel } from "./hooks/useAutonomyLevel";
+import { useAuth } from "./auth/AuthProvider";
+import { ControlPlaneDataProvider, useControlPlane } from "./state/ControlPlaneData";
+
+const NAV = [
+  { to: "/", num: "SHEET 0", name: "SYSTEM STATE", end: true },
+  { to: "/blueprint", num: "SHEET 1", name: "BLUEPRINT" },
+  { to: "/control-plane", num: "SHEET 2", name: "CONTROL PLANE" },
+  { to: "/evidence", num: "SHEET 3", name: "EVIDENCE" },
+  { to: "/genomes", num: "SHEET 4", name: "GENOMES" },
+  { to: "/allocation", num: "SHEET 5", name: "ALLOCATION" },
+  { to: "/governance", num: "SHEET 6", name: "GOVERNANCE" },
+];
+
+export default function App() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="app-shell app-shell--bare">
+        <div className="texture-layer" aria-hidden="true" />
+        <main className="auth-main">
+          <p className="card-footnote" style={{ borderTop: "none" }} role="status">
+            checking your session with the control plane…
+          </p>
+        </main>
+      </div>
+    );
+  }
+
+  if (!user) return <Login />;
+
+  return (
+    <ControlPlaneDataProvider>
+      <Shell />
+    </ControlPlaneDataProvider>
+  );
+}
+
+function Shell() {
+  const theme = useTheme();
+  const { level } = useAutonomyLevel();
+  const { user, logout } = useAuth();
+  const { missions, evidence } = useControlPlane();
+  const [navOpen, setNavOpen] = useState(false);
+
+  const loadingCounts = missions.loading || evidence.loading;
+  const activeMissions = missions.missions.filter(
+    (m) => m.status === "in-progress" || m.status === "queued",
+  ).length;
+  const pendingVerification = evidence.records.filter(
+    (r) => r.state === "RECEIPTED" || r.state === "EXECUTED",
+  ).length;
+  const apiError = missions.error ?? evidence.error;
+
+  return (
+    <div className="app-shell">
+      <div className="texture-layer" aria-hidden="true" />
+
+      <button
+        type="button"
+        className="btn app-mobile-bar"
+        aria-expanded={navOpen}
+        aria-controls="app-nav"
+        onClick={() => setNavOpen((v) => !v)}
+      >
+        ☰ MENU
+      </button>
+
+      <nav className={`app-nav${navOpen ? " open" : ""}`} id="app-nav" aria-label="FABLE-5 workspaces">
+        <div className="app-brand">
+          <NavLink to="/" className="app-brand-mark" aria-label="FABLE-5 home">
+            <span className="app-brand-swatch" aria-hidden="true" />
+            <span className="app-brand-title">FABLE-5</span>
+          </NavLink>
+          <div className="app-brand-sub">AUTONOMOUS COMPANY CONTROL PLANE</div>
+        </div>
+        {NAV.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.end}
+            className={({ isActive }) => `app-nav-link${isActive ? " active" : ""}`}
+            onClick={() => setNavOpen(false)}
+          >
+            <span className="app-nav-num">{item.num}</span>
+            <span className="app-nav-name">{item.name}</span>
+          </NavLink>
+        ))}
+        <div className="app-account">
+          <div className="app-account-who">
+            {user?.email}
+            <br />
+            <span style={{ color: "var(--ink-dim)" }}>{user?.is_founder ? "FOUNDER" : "OPERATOR"}</span>
+          </div>
+          <button type="button" className="btn" onClick={logout}>
+            SIGN OUT
+          </button>
+        </div>
+      </nav>
+
+      <div className="app-main">
+        <div className="status-bar" role="status" aria-label="Global system status">
+          <div className="status-chip">
+            <span className="status-k">Active Missions</span>
+            <span className="status-v">{loadingCounts ? "…" : activeMissions}</span>
+          </div>
+          <div className="status-chip">
+            <span className="status-k">Pending Verification</span>
+            <span className="status-v status-v--accent">{loadingCounts ? "…" : pendingVerification}</span>
+          </div>
+          <div className="status-chip">
+            <span className="status-k">Autonomy Level</span>
+            <span className="status-v">{level}</span>
+          </div>
+          <div className="status-chip">
+            <span className="status-k">Palette</span>
+            <span className="status-v">{theme.palette}</span>
+          </div>
+        </div>
+
+        {apiError && (
+          <p className="api-error" role="alert">
+            API UNREACHABLE — {apiError}. These counts are stale, not zero.
+          </p>
+        )}
+
+        <main id="main-content">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/blueprint" element={<Blueprint />} />
+            <Route path="/control-plane" element={<ControlPlane />} />
+            <Route path="/evidence" element={<Evidence />} />
+            <Route path="/genomes" element={<Genomes />} />
+            <Route path="/allocation" element={<Allocation />} />
+            <Route path="/governance" element={<Governance />} />
+            <Route path="*" element={<Home />} />
+          </Routes>
+        </main>
+      </div>
+    </div>
+  );
+}

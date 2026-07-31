@@ -1,0 +1,54 @@
+/* ═══════════════════════════════════════════════════════════════════
+   FABLE-5 design tokens — lifted from the blueprint source
+   (assets/FABLE-5 System Blueprint v2.dc.html). Four palettes driven by
+   data-palette on <html>; a texture layer driven by data-texture; a grid
+   scale driven by --grid. Cyan is the spec default.
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  --grid: 36px;
+  --sw-bg: #0d1b2e;
+  --sw-accent: #7fd4ff;
+
+  --font-display: "Space Grotesk", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+}
+
+/* Per-palette surface + accent pairs, from design-language.md */
+html[data-palette="cyan"] {
+  --sw-bg: #0d1b2e;
+  --sw-accent: #7fd4ff;
+}
+html[data-palette="mint"] {
+  --sw-bg: #101c14;
+  --sw-accent: #8affc1;
+}
+html[data-palette="amber"] {
+  --sw-bg: #1c1410;
+  --sw-accent: #ffc46b;
+}
+html[data-palette="violet"] {
+  --sw-bg: #170f1e;
+  --sw-accent: #c9a6ff;
+}
+
+/* Derive the full token set from the surface + accent pair so switching
+   palette re-themes the whole app. */
+html {
+  --bg: var(--sw-bg);
+  --panel: color-mix(in srgb, var(--sw-bg) 82%, white 8%);
+  --panel-raised: color-mix(in srgb, var(--sw-bg) 74%, white 14%);
+  --ink: color-mix(in srgb, var(--sw-accent) 12%, #f4f7fa 88%);
+  --ink-dim: color-mix(in srgb, var(--sw-accent) 8%, #f4f7fa 46%);
+  --ink-faint: color-mix(in srgb, var(--sw-accent) 6%, #f4f7fa 28%);
+  --grid-line: color-mix(in srgb, var(--sw-accent) 22%, transparent 78%);
+  --accent: var(--sw-accent);
+  --accent-dim: color-mix(in srgb, var(--sw-accent) 55%, var(--sw-bg) 45%);
+  --accent-ink: color-mix(in srgb, var(--sw-accent) 92%, black 8%);
+  --border: color-mix(in srgb, var(--sw-accent) 20%, white 6%);
+  --border-dim: color-mix(in srgb, var(--sw-accent) 10%, white 4%);
+  --warn: #ff8a66;
+  --warn-dim: color-mix(in srgb, #ff8a66 40%, var(--sw-bg) 60%);
+  --ok: #7fffb0;
+  --dashed: color-mix(in srgb, var(--sw-accent) 45%, transparent 55%);
+}

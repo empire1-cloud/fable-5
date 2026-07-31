@@ -1,0 +1,55 @@
+// DEMO DATA — sample signals feeding the Opportunity Graph.
+import type { Signal } from "../types";
+
+export const signals: Signal[] = [
+  {
+    id: "sig-001",
+    source: "channel telemetry — SEO organic",
+    category: "market",
+    confidence: 0.78,
+    epistemicType: "INFERENCE",
+    timestamp: "2026-07-18T09:14:00Z",
+    reliability: 0.82,
+    relatedOpportunityId: "opp-001",
+  },
+  {
+    id: "sig-002",
+    source: "customer interview batch (n=14)",
+    category: "customer pain",
+    confidence: 0.64,
+    epistemicType: "HYPOTHESIS",
+    timestamp: "2026-07-19T15:40:00Z",
+    reliability: 0.6,
+    relatedOpportunityId: "opp-001",
+  },
+  {
+    id: "sig-003",
+    source: "node KPI feed — LATAM-fintech-01",
+    category: "node telemetry",
+    confidence: 0.91,
+    epistemicType: "FACT",
+    timestamp: "2026-07-20T04:00:00Z",
+    reliability: 0.95,
+    relatedOpportunityId: "opp-002",
+  },
+  {
+    id: "sig-004",
+    source: "memory recall — prior AI-product kill",
+    category: "negative intelligence",
+    confidence: 0.55,
+    epistemicType: "ASSUMPTION",
+    timestamp: "2026-07-21T11:02:00Z",
+    reliability: 0.7,
+    relatedOpportunityId: "opp-003",
+  },
+  {
+    id: "sig-005",
+    source: "market data — services-to-software vertical scan",
+    category: "market",
+    confidence: 0.47,
+    epistemicType: "FORECAST",
+    timestamp: "2026-07-21T22:31:00Z",
+    reliability: 0.58,
+    relatedOpportunityId: "opp-003",
+  },
+];
