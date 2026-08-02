@@ -1,4 +1,4 @@
-/** The only door between the browser and the server-authoritative control plane. */
+/** The only door between the browser and the server-authoritative control plane (rev-2.0, scale-v2). */
 
 const BASE = (import.meta.env.VITE_API_BASE ?? "").replace(/\/+$/, "");
 const TOKEN_KEY = "fable5:auth:token";
@@ -28,13 +28,19 @@ export const tokenStore = {
 
 export const AUTH_EXPIRED_EVENT = "fable5:auth-expired";
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+async function request<T>(
+  method: string,
+  path: string,
+  body?: unknown,
+  headers?: Record<string, string>,
+): Promise<T> {
   const token = tokenStore.get();
   const res = await fetch(`${BASE}${path}`, {
     method,
     headers: {
       ...(body === undefined ? {} : { "Content-Type": "application/json" }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...headers,
     },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
@@ -53,6 +59,8 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 function detailOf(payload: unknown): string | null {
   if (typeof payload === "string") return payload;
   if (!payload || typeof payload !== "object") return null;
+  const reason = (payload as { reason?: unknown }).reason;
+  if (typeof reason === "string") return reason;
   const detail = (payload as { detail?: unknown }).detail;
   if (typeof detail === "string") return detail;
   if (Array.isArray(detail)) {
@@ -64,92 +72,107 @@ function detailOf(payload: unknown): string | null {
   return null;
 }
 
-export interface AuthToken { access_token: string; token_type: string; expires_at: string; }
-export interface Me { id: string; org_id: string; email: string; display_name: string; is_founder: boolean; }
-export interface Leverage { score: number; factors: Record<string, number>; weights: Record<string, number>; seeded_score: number | null; divergence: number | null; }
-export interface ApiOpportunity {
-  id: string; title: string; evidence: string[]; assumptions: string[]; dependencies: string[];
-  epistemic_type: string; expected_value: number; confidence: number; risk: string; reversibility: string;
-  time_to_proof_days: number; next_experiment: string; created_at: string; leverage: Leverage;
+/** The authenticated caller, derived server-side from the session. */
+export interface Actor {
+  userId: string;
+  email: string;
+  tenantId: string;
+  tenantName: string;
+  role: string;
+}
+export interface AuthSession {
+  token: string;
+  actor: Actor;
+}
+export interface MeResult {
+  actor: Actor;
+  expiresAt: string;
+  issuedAt: string;
+}
+export interface HealthState {
+  status: string;
+  service: string;
+  architecture: string;
+  databaseTime: string;
+  moneyExecutionDefault: boolean;
 }
 
 export interface ApiReceipt {
-  id: string; state_attested: string; kind: string; content: string; uri: string | null;
-  sha256: string; created_by: string; created_by_user_id: string; created_at: string;
+  id: string; receipt_type: string; uri: string | null; digest: string | null;
+  description: string; grade: string; is_demo: boolean; created_at: string;
 }
 export interface ApiVerification {
-  id: string; receipt_id: string; verifier: string; verifier_user_id: string; reproduced: boolean;
-  method: string; notes: string; created_at: string;
+  id: string; method: string; verifier: string; independent: boolean; reproducible: boolean;
+  result: unknown; created_at: string;
+}
+export interface ApiMeasurement {
+  id: string; gate_type: string; reading: unknown; verdict: string; created_at: string;
 }
 export interface ApiContradiction {
-  id: string; detail: string; resolved: boolean; resolution: string | null; resolved_at: string | null; created_at: string;
+  id: string; description: string; severity: string; resolved: boolean;
+  resolution: string | null; resolved_at: string | null; created_at: string;
 }
-export interface ApiAuditEntry { state: string; actor: string; actor_user_id: string; reason: string; created_at: string; }
+export interface ApiAuditEntry {
+  id: string; state_from: string | null; state_to: string; reason: string;
+  actor_id: string; metadata: unknown; created_at: string;
+}
 export interface ApiEvidenceRecord {
-  id: string; subject: string; state: string; version: number; epistemic_type: string; confidence: number;
-  is_financial: boolean; intent_token_id: string | null; spend_verdict_id: string | null;
-  vendor_or_system: string | null; financial_amount: string | null; financial_currency: string | null;
-  financial_environment: string | null; authorization: string | null; authorized_by: string | null;
-  authorized_by_user_id: string | null; execution_log: string | null; measurement: string | null;
-  learning: string | null; canonization: string | null; created_at: string; receipts: ApiReceipt[];
-  verifications: ApiVerification[]; contradictions: ApiContradiction[]; audit_entries: ApiAuditEntry[];
-  allowed_next_states: string[]; next_state_blocker: string | null;
+  id: string; subject_type: string; subject_id: string; claim: string; state: string;
+  grade: string; confidence: number; created_by: string; created_at: string; updated_at: string;
+  receipts: ApiReceipt[]; verifications: ApiVerification[]; measurements: ApiMeasurement[];
+  contradictions: ApiContradiction[]; audit_entries: ApiAuditEntry[];
 }
 
-export interface ApiMission {
-  id: string; engine_id: string; owner: string; objective: string; autonomy_level: string; status: string;
-  success_criteria: string; evidence_requirement: string; blocker: string | null; escalation_condition: string;
-  record_id: string | null; created_at: string;
+export interface ApiOpportunity {
+  id: string; title: string; summary: string; ranking_score: number; ranking_verdict: string;
+  ranking_factors: unknown; evidence_id: string; status: string; created_at: string;
 }
-export interface ApiIntentTokenAudit { actor: string; action: string; detail: string; created_at: string; }
+export interface ApiMission {
+  id: string; engine_id: string; owner: string; objective: string; autonomy_level: string;
+  status: string; success_criteria: string | null; evidence_requirement: string | null;
+  blocker: string | null; escalation_condition: string | null; record_id: string | null;
+  created_at: string;
+}
 export interface ApiIntentToken {
-  id: string; token_id: string; action: string; vendor_or_system: string; max_amount: string; total_budget: string;
-  max_uses: number; currency: string; environment: string; expires_at: string; revoked: boolean;
-  revoked_at: string | null; issued_by: string; created_at: string; audit: ApiIntentTokenAudit[];
+  id: string; action: string; vendor_or_system: string; max_amount: number; currency: string;
+  environment: string; recurrence: string; expires_at: string; revoked: boolean;
+  revoked_at: string | null; approved_by: string; created_at: string;
 }
 export interface SpendVerdict {
-  verdict_id: string; request_id: string; approved: boolean; reason: string | null; executed: boolean;
-  execution_available: boolean; expires_at: string; note: string;
+  allowed: boolean;
+  executed: boolean;
+  code: string;
+  reason: string;
 }
-export interface FinancePolicyAudit {
-  actor: string; execution_enabled: boolean; execution_mode: string; webhook_url: string | null;
-  webhook_secret_key_id: string | null; require_founder_execution: boolean; reason: string; created_at: string;
+export interface OpportunityRanking {
+  score: number;
+  verdict: string;
+  confidence: number;
+  factors: Record<string, number>;
 }
-export interface FinancePolicy {
-  execution_enabled: boolean; execution_mode: "verdict_only" | "manual" | "sandbox" | "external_webhook";
-  webhook_url: string | null; webhook_secret_key_id: string | null; require_founder_execution: boolean;
-  updated_by: string; updated_at: string;
-}
-export interface PaymentExecution {
-  execution_id: string; evidence_record_id: string; receipt_id: string; provider: string; status: string; amount: string; currency: string;
-  provider_reference: string | null; response_sha256: string | null; detail: string; executed_by: string; created_at: string;
-}
-export interface StatesMeta { evidence_states: string[]; failure_states: string[]; all_states: string[]; }
 
 export const api = {
-  health: () => request<{ status: string; environment: string }>("GET", "/api/health"),
-  states: () => request<StatesMeta>("GET", "/api/meta/states"),
+  health: () => request<HealthState>("GET", "/api/health"),
   auth: {
-    register: (body: { email: string; password: string; org_name: string; display_name?: string }) => request<AuthToken>("POST", "/api/auth/register", body),
-    login: (body: { email: string; password: string }) => request<AuthToken>("POST", "/api/auth/login", body),
-    me: () => request<Me>("GET", "/api/auth/me"),
-    team: () => request<Me[]>("GET", "/api/auth/team"),
-    invite: (body: { email: string; password: string; display_name?: string }) => request<Me>("POST", "/api/auth/invite", body),
+    login: (body: { email: string; password: string }) => request<AuthSession>("POST", "/api/auth/login", body),
+    me: () => request<MeResult>("GET", "/api/auth/me"),
   },
   opportunities: {
     list: () => request<ApiOpportunity[]>("GET", "/api/opportunities"),
-    create: (body: Record<string, unknown>) => request<ApiOpportunity>("POST", "/api/opportunities", body),
+    create: (body: Record<string, unknown>) => request<{ opportunityId: string; evidenceId: string; ranking: OpportunityRanking }>("POST", "/api/opportunities", body),
   },
   evidence: {
     list: () => request<ApiEvidenceRecord[]>("GET", "/api/evidence"),
     get: (id: string) => request<ApiEvidenceRecord>("GET", `/api/evidence/${id}`),
     create: (body: Record<string, unknown>) => request<ApiEvidenceRecord>("POST", "/api/evidence", body),
-    setFields: (id: string, body: Record<string, string | null>) => request<ApiEvidenceRecord>("PATCH", `/api/evidence/${id}/fields`, body),
-    addReceipt: (id: string, body: { kind: string; content: string; uri?: string | null }) => request<ApiEvidenceRecord>("POST", `/api/evidence/${id}/receipts`, body),
-    addVerification: (id: string, body: { receipt_id: string; reproduced: boolean; method: string; notes?: string }) => request<ApiEvidenceRecord>("POST", `/api/evidence/${id}/verifications`, body),
-    addContradiction: (id: string, body: { detail: string }) => request<ApiEvidenceRecord>("POST", `/api/evidence/${id}/contradictions`, body),
-    resolveContradiction: (id: string, contradictionId: string, body: { detail: string }) => request<ApiEvidenceRecord>("POST", `/api/evidence/${id}/contradictions/${contradictionId}/resolve`, body),
-    transition: (id: string, body: { to: string; reason: string; expected_version?: number }) => request<ApiEvidenceRecord>("POST", `/api/evidence/${id}/transition`, body),
+    addReceipt: (id: string, body: { receipt_type?: string; description: string; uri?: string | null; digest?: string | null; grade?: string }) =>
+      request<ApiEvidenceRecord>("POST", `/api/evidence/${id}/receipts`, body),
+    addVerification: (id: string, body: { receipt_id?: string | null; method: string; verifier?: string; independent?: boolean; reproduced?: boolean; result?: unknown }) =>
+      request<ApiEvidenceRecord>("POST", `/api/evidence/${id}/verifications`, body),
+    addMeasurement: (id: string, body: { gate_type?: string; reading?: unknown; verdict?: string }) =>
+      request<ApiEvidenceRecord>("POST", `/api/evidence/${id}/measurements`, body),
+    transition: (id: string, body: { to: string; context?: unknown; reason?: string }) =>
+      request<ApiEvidenceRecord>("POST", `/api/evidence/${id}/transition`, body),
   },
   missions: {
     list: () => request<ApiMission[]>("GET", "/api/missions"),
@@ -162,16 +185,5 @@ export const api = {
     issue: (body: Record<string, unknown>) => request<ApiIntentToken>("POST", "/api/intent-tokens", body),
     revoke: (tokenId: string) => request<ApiIntentToken>("POST", `/api/intent-tokens/${tokenId}/revoke`),
     check: (body: Record<string, unknown>) => request<SpendVerdict>("POST", "/api/intent-tokens/check", body),
-  },
-  compliance: {
-    controlEvidence: () => request<Record<string, unknown>>("GET", "/api/compliance/control-evidence"),
-  },
-  payments: {
-    policy: () => request<FinancePolicy>("GET", "/api/payments/policy"),
-    setPolicy: (body: Record<string, unknown>) => request<FinancePolicy>("PUT", "/api/payments/policy", body),
-    policyAudit: () => request<FinancePolicyAudit[]>("GET", "/api/payments/policy-audit"),
-    execute: (verdictId: string, body: { external_reference?: string; note?: string }) => request<PaymentExecution>("POST", `/api/payments/verdicts/${verdictId}/execute`, body),
-    executions: () => request<PaymentExecution[]>("GET", "/api/payments/executions"),
-    createCheckoutSession: (planType: string) => request<{ url: string }>("POST", "/api/payments/checkout-session", { planType }),
   },
 };

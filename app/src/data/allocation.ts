@@ -1,22 +1,23 @@
 // DEMO DATA — Capital & Resource Allocation (Engine 08). Adjustable in the
 // UI as local demo state; a reserve is always held unallocated.
-import type { AllocationTarget, ResourceDef, ResourceType } from "../types";
-import { RESOURCE_TYPES } from "../types";
+import type { AllocationTarget, ResourceAllocation } from "../types/allocation";
+import type { ResourceType } from "../types/enums";
+import { RESOURCE_TYPES } from "../types/enums";
 
-export const resourcePools: ResourceDef[] = RESOURCE_TYPES.map((resourceType) => {
-  const seed: Record<ResourceType, { capacity: number; unit: string; step: number; financial: boolean }> = {
-    "founder time": { capacity: 40, unit: "hours/week", step: 1, financial: false },
-    "agent time": { capacity: 2000, unit: "hours/week", step: 10, financial: false },
-    cash: { capacity: 500000, unit: "$", step: 1000, financial: true },
-    compute: { capacity: 10000, unit: "compute units", step: 50, financial: false },
-    "engineering capacity": { capacity: 320, unit: "engineers", step: 1, financial: false },
-    "distribution capacity": { capacity: 100, unit: "channels", step: 1, financial: false },
-    "partnership bandwidth": { capacity: 20, unit: "partners", step: 1, financial: false },
-    "legal effort": { capacity: 60, unit: "hours/week", step: 1, financial: false },
-    "operational attention": { capacity: 100, unit: "hours/week", step: 1, financial: false },
+export const resourcePools: ResourceAllocation[] = RESOURCE_TYPES.map((resourceType) => {
+  const seed: Record<ResourceType, number> = {
+    "founder time": 40,
+    "agent time": 2000,
+    cash: 500000,
+    compute: 10000,
+    engineering: 320,
+    distribution: 100,
+    partnerships: 20,
+    "legal effort": 60,
+    "operational attention": 100,
   };
-  const { capacity, unit, step, financial } = seed[resourceType];
-  return { type: resourceType, capacity, unit, step, financial };
+  const total = seed[resourceType];
+  return { resourceType, total, committed: 0, reserve: total };
 });
 
 export const allocationTargets: AllocationTarget[] = [
@@ -35,7 +36,7 @@ export const allocationTargets: AllocationTarget[] = [
       timeToProofDays: 10,
       risk: "medium",
     },
-    allocated: { "agent time": 60, "engineering capacity": 40, "operational attention": 8 },
+    allocated: { "agent time": 60, engineering: 40, "operational attention": 8 },
   },
   {
     id: "alloc-node-mx",

@@ -1,23 +1,22 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { AUTH_EXPIRED_EVENT, api, tokenStore } from "../lib/api";
-import type { Me } from "../lib/api";
+import type { Actor } from "../lib/api";
 
 const USER_STORAGE_KEY = "fable5:user";
 
 interface AuthState {
-  user: Me | null;
+  user: Actor | null;
   /** True while we are still asking the server who we are on first paint. */
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, orgName: string) => Promise<void>;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<Me | null>(null);
+  const [user, setUser] = useState<Actor | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadMe = useCallback(async () => {
@@ -27,9 +26,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     try {
-      const user = await api.auth.me();
-      setUser(user);
-      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+      const me = await api.auth.me();
+      setUser(me.actor);
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(me.actor));
     } catch {
       // A stored token the server no longer honours is not a session.
       tokenStore.clear();
@@ -48,31 +47,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [loadMe]);
 
   const login = useCallback(async (email: string, password: string) => {
-    const token = await api.auth.login({ email, password });
-    tokenStore.set(token.access_token);
-    try {
-      const user = await api.auth.me();
-      setUser(user);
-      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
-    } catch {
-      // If we cannot fetch the user, we still have the token but no user.
-      // We'll clear the user state and the stored user.
-      setUser(null);
-      localStorage.removeItem(USER_STORAGE_KEY);
-    }
-  }, []);
-
-  const register = useCallback(async (email: string, password: string, orgName: string) => {
-    const token = await api.auth.register({ email, password, org_name: orgName });
-    tokenStore.set(token.access_token);
-    try {
-      const user = await api.auth.me();
-      setUser(user);
-      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
-    } catch {
-      setUser(null);
-      localStorage.removeItem(USER_STORAGE_KEY);
-    }
+    const session = await api.auth.login({ email, password });
+    tokenStore.set(session.token);
+    setUser(session.actor);
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(session.actor));
   }, []);
 
   const logout = useCallback(() => {
@@ -82,8 +60,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, loading, login, register, logout }),
-    [user, loading, login, register, logout],
+    () => ({ user, loading, login, logout }),
+    [user, loading, login, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

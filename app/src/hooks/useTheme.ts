@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useLocalStorage } from "./useLocalStorage";
-import type { Palette, Texture } from "../types";
+import type { Palette, Texture } from "../types/enums";
 
 const DEFAULTS = { palette: "cyan" as Palette, texture: "graph" as Texture, grid: 36 };
 

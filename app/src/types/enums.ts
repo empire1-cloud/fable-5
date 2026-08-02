@@ -104,6 +104,10 @@ export type GateType = (typeof GATE_TYPES)[number];
 export const GATE_VERDICTS = ["CLONE", "ITERATE", "PAUSE", "KILL"] as const;
 export type GateVerdict = (typeof GATE_VERDICTS)[number];
 
+/** Verdicts a Measurement may record against a gate. Server-enforced superset. */
+export const MEASUREMENT_VERDICTS = ["PASS", "FAIL", "CLONE", "ITERATE", "PAUSE", "KILL"] as const;
+export type MeasurementVerdict = (typeof MEASUREMENT_VERDICTS)[number];
+
 /** Scarce resources tracked by Capital & Resource Allocation (Engine 08). */
 export const RESOURCE_TYPES = [
   "founder time",

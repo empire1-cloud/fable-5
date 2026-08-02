@@ -65,6 +65,26 @@ export async function authenticateToken(token) {
   } : null;
 }
 
+/**
+ * Session lifecycle detail for the authenticated actor. auth_sessions is not
+ * under row-level security, so the app role may read it directly once the
+ * actor has already been validated by fable5_session_actor.
+ */
+export async function sessionExpiry(token) {
+  if (!token) return null;
+  const result = await pool.query(
+    `SELECT expires_at, revoked_at, created_at FROM auth_sessions WHERE token_hash=$1`,
+    [tokenHash(token)]
+  );
+  const row = result.rows[0];
+  if (!row) return null;
+  return {
+    expiresAt: row.expires_at,
+    revoked: row.revoked_at != null,
+    issuedAt: row.created_at
+  };
+}
+
 export function requireAuth() {
   return async (req, res, next) => {
     try {
@@ -73,6 +93,7 @@ export function requireAuth() {
       const actor = await authenticateToken(token);
       if (!actor) return res.status(401).json({ error: "REFUSED", reason: "Authentication required" });
       req.actor = actor;
+      req.token = token;
       next();
     } catch (error) {
       next(error);

@@ -2,7 +2,7 @@
 // spans multiple states, including a blocked one and one with unresolved
 // contradictions, so the guard in src/lib/evidence.ts has real cases to
 // enforce against, not just a single happy path.
-import type { EvidenceRecord } from "../types";
+import type { EvidenceRecord } from "../types/evidenceRecord";
 
 export const evidenceRecords: EvidenceRecord[] = [
   {

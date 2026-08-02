@@ -12,6 +12,9 @@ import type {
 } from '../types';
 import { EVIDENCE_STATES } from '../types';
 import { validTokens, withinAuthority } from './governance';
+import type { EvidenceRecord as RichEvidenceRecord } from '../types/evidenceRecord';
+import type { IntentToken as RichIntentToken } from '../types/intentToken';
+import type { RecordStatus } from '../types/enums';
 
 export interface TransitionContext {
   mission?: Mission;
@@ -167,4 +170,141 @@ export function canAdvance(rec: EvidenceRecord, ctx: TransitionContext): Transit
   const to = nextEvidenceState(rec.state);
   const requirements = transitionRequirements(rec, ctx);
   return { ok: to !== null && requirements.every((r) => r.met), to, requirements };
+}
+
+// ---------------------------------------------------------------------------
+// Rich-model API — operates on the modular EvidenceRecord / IntentToken shapes
+// used by the /evidence + /control workspaces, src/data/evidenceRecords, and
+// the guard tests. Shares the same strictly-ordered, non-skippable eight-state
+// machine and the same anti-fake-progress rules as canAdvance() above.
+// ---------------------------------------------------------------------------
+
+export interface RichTransitionContext {
+  token?: RichIntentToken;
+}
+
+export interface RichTransitionCheck {
+  allowed: boolean;
+  reason?: string;
+}
+
+/** Refuses any transition once a record is BLOCKED or KILLED — negative intelligence is retained, not resumed. */
+export function canTransition(
+  record: RichEvidenceRecord,
+  target: RecordStatus,
+  ctx: RichTransitionContext = {},
+): RichTransitionCheck {
+  if (record.state === 'CANONIZED') {
+    return { allowed: false, reason: `record is CANONIZED — terminal` };
+  }
+  if (record.state === 'BLOCKED' || record.state === 'KILLED') {
+    return {
+      allowed: false,
+      reason: `record is ${record.state} — negative intelligence is retained, not resumed`,
+    };
+  }
+  // Sideways to a failure state is always allowed from a live state.
+  if (target === 'BLOCKED' || target === 'KILLED') {
+    return { allowed: true };
+  }
+
+  const from = stateIndex(record.state as EvidenceState);
+  const to = EVIDENCE_STATES.indexOf(target as EvidenceState);
+  if (from < 0) return { allowed: false, reason: `unknown current state "${record.state}"` };
+  if (to < 0) return { allowed: false, reason: `unknown target state "${target}"` };
+  if (to === from) return { allowed: false, reason: `already in state ${target}` };
+  if (to < from) return { allowed: false, reason: `backward transition to ${target} is not allowed` };
+  if (to > from + 1) {
+    return { allowed: false, reason: `cannot skip ${EVIDENCE_STATES[from + 1]} — transitions are sequential` };
+  }
+
+  if (target === 'AUTHORIZED' && record.isFinancial) {
+    const token = ctx.token;
+    if (!token) {
+      return { allowed: false, reason: 'no Founder-Approved Intent Token provided in context — NO VALID TOKEN → NO SPEND' };
+    }
+    if (token.revoked) return { allowed: false, reason: `token ${token.tokenId} is revoked` };
+    if (new Date(token.expiresAt).getTime() <= Date.now()) {
+      return { allowed: false, reason: `token ${token.tokenId} expired at ${token.expiresAt}` };
+    }
+    if (record.financialAmount != null && record.financialAmount > token.maxAmount) {
+      return {
+        allowed: false,
+        reason: `financial amount ${record.financialAmount} exceeds token ceiling ${token.maxAmount}`,
+      };
+    }
+    if (record.financialVendorOrSystem && token.vendorOrSystem && record.financialVendorOrSystem !== token.vendorOrSystem) {
+      return { allowed: false, reason: `vendor/system out of scope for token ${token.tokenId}` };
+    }
+    if (record.financialEnvironment && token.environment && record.financialEnvironment !== token.environment) {
+      return { allowed: false, reason: `environment out of scope for token ${token.tokenId}` };
+    }
+  }
+
+  const blockers = nextStateBlockers(record);
+  return blockers ? { allowed: false, reason: blockers } : { allowed: true };
+}
+
+/** Next live states the record may move to — VERIFIED is omitted until an independent verification record is on file. */
+export function allowedNextStates(record: RichEvidenceRecord): EvidenceState[] {
+  const next = nextEvidenceState(record.state as EvidenceState);
+  if (!next) return [];
+  return canTransition(record, next).allowed ? [next] : [];
+}
+
+/** Applies a transition immutably, appending an audit entry. Throws rather than mutate on an illegal transition. */
+export function applyTransition(
+  record: RichEvidenceRecord,
+  target: EvidenceState,
+  note: string,
+  opts: { actor?: string; now?: Date } = {},
+): RichEvidenceRecord {
+  const check = canTransition(record, target);
+  if (!check.allowed) {
+    throw new Error(`illegal transition ${record.state} -> ${target}: ${check.reason ?? 'not allowed'}`);
+  }
+  return {
+    ...record,
+    state: target,
+    auditHistory: [
+      ...record.auditHistory,
+      { state: target, timestamp: (opts.now ?? new Date()).toISOString(), actor: opts.actor ?? 'system', reason: note },
+    ],
+  };
+}
+
+/** Human-readable unmet requirements blocking the record's next live state; '' means clear. */
+export function nextStateBlockers(record: RichEvidenceRecord): string {
+  const next = nextEvidenceState(record.state as EvidenceState);
+  if (!next) return '';
+
+  const unmet: string[] = [];
+  switch (next) {
+    case 'AUTHORIZED':
+      if (!record.isFinancial && !record.authorization) {
+        unmet.push('an authorization record must be on file before AUTHORIZED');
+      }
+      break;
+    case 'RECEIPTED':
+      if (record.evidence.length === 0) {
+        unmet.push('at least one receipt must be attached — an action without a receipt did not happen');
+      }
+      break;
+    case 'VERIFIED':
+      if (record.verifications.length === 0) {
+        unmet.push('no independent verification record on file — a receipt alone is not verification');
+      }
+      if (record.contradictions.some((c) => !c.resolved)) {
+        unmet.push('unresolved contradictions remain');
+      }
+      break;
+    case 'MEASURED':
+      if (!record.measurement) {
+        unmet.push('an outcome measurement against the typed economic gate must be recorded');
+      }
+      break;
+    default:
+      break;
+  }
+  return unmet.join('; ');
 }

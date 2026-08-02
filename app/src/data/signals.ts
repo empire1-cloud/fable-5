@@ -1,5 +1,5 @@
 // DEMO DATA — sample signals feeding the Opportunity Graph.
-import type { Signal } from "../types";
+import type { Signal } from "../types/signal";
 
 export const signals: Signal[] = [
   {

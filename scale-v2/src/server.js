@@ -4,18 +4,43 @@ import cors from "cors";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ENGINE_REGISTRY, getEngine } from "./engine-registry.js";
-import { requireAuth, login } from "./auth.js";
-import { healthcheck, pool, withTenant } from "./db.js";
-import { createOpportunity, authorizeOpportunity, transitionEvidence, dashboard } from "./repository.js";
+import { requireAuth, login, sessionExpiry } from "./auth.js";
+import { healthcheck } from "./db.js";
+import {
+  createOpportunity,
+  authorizeOpportunity,
+  transitionEvidence,
+  dashboard,
+  listEvidence,
+  getEvidence,
+  createEvidence,
+  addReceipt,
+  addVerification,
+  addMeasurement,
+  listOpportunities,
+  listMissions,
+  getMission,
+  createMission,
+  updateMission,
+  archiveMission,
+  listIntentTokens,
+  createIntentToken,
+  revokeIntentToken,
+  loadIntentTokenForSpend
+} from "./repository.js";
 import { evaluateIntentToken } from "./domain/spend.js";
+import { EvidenceTransitionError } from "./domain/evidence.js";
 
 const app = express();
 const port = Number(process.env.PORT ?? 3001);
+const appOrigin = process.env.APP_ORIGIN
+  ? process.env.APP_ORIGIN.split(",").map((s) => s.trim())
+  : true;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.resolve(__dirname, "../public");
 
 app.disable("x-powered-by");
-app.use(cors({ origin: process.env.APP_ORIGIN ?? true, credentials: false }));
+app.use(cors({ origin: appOrigin, credentials: false }));
 app.use(express.json({ limit: "2mb" }));
 app.use((req, res, next) => {
   req.correlationId = req.headers["x-correlation-id"] || crypto.randomUUID();
@@ -46,6 +71,20 @@ app.post("/api/auth/login", async (req, res, next) => {
     const result = await login(email, password);
     if (!result) return res.status(401).json({ error: "REFUSED", reason: "Invalid credentials" });
     res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/auth/me", requireAuth(), async (req, res, next) => {
+  try {
+    const session = await sessionExpiry(req.token);
+    if (!session) return res.status(401).json({ error: "REFUSED", reason: "Authentication required" });
+    res.json({
+      actor: req.actor,
+      expiresAt: session.expiresAt,
+      issuedAt: session.issuedAt
+    });
   } catch (error) {
     next(error);
   }
@@ -83,9 +122,65 @@ app.post("/api/opportunities", requireAuth(), async (req, res, next) => {
   }
 });
 
+app.get("/api/opportunities", requireAuth(), async (req, res, next) => {
+  try {
+    res.json(await listOpportunities(req.actor));
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.post("/api/opportunities/:id/authorize", requireAuth(), async (req, res, next) => {
   try {
     res.json(await authorizeOpportunity(req.actor, req.params.id, req.body?.reason ?? "Authorized through Engine 00"));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/evidence", requireAuth(), async (req, res, next) => {
+  try {
+    res.json(await listEvidence(req.actor));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/evidence/:id", requireAuth(), async (req, res, next) => {
+  try {
+    res.json(await getEvidence(req.actor, req.params.id));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/evidence", requireAuth(), async (req, res, next) => {
+  try {
+    res.status(201).json(await createEvidence(req.actor, req.body ?? {}));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/evidence/:id/receipts", requireAuth(), async (req, res, next) => {
+  try {
+    res.status(201).json(await addReceipt(req.actor, req.params.id, req.body ?? {}));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/evidence/:id/verifications", requireAuth(), async (req, res, next) => {
+  try {
+    res.status(201).json(await addVerification(req.actor, req.params.id, req.body ?? {}));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/evidence/:id/measurements", requireAuth(), async (req, res, next) => {
+  try {
+    res.status(201).json(await addMeasurement(req.actor, req.params.id, req.body ?? {}));
   } catch (error) {
     next(error);
   }
@@ -101,40 +196,92 @@ app.post("/api/evidence/:id/transition", requireAuth(), async (req, res, next) =
   }
 });
 
-app.post("/api/spend/verdict", requireAuth(), async (req, res, next) => {
+app.get("/api/missions", requireAuth(), async (req, res, next) => {
+  try {
+    res.json(await listMissions(req.actor));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/missions/:id", requireAuth(), async (req, res, next) => {
+  try {
+    res.json(await getMission(req.actor, req.params.id));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/missions", requireAuth(), async (req, res, next) => {
+  try {
+    res.status(201).json(await createMission(req.actor, req.body ?? {}));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.put("/api/missions/:id", requireAuth(), async (req, res, next) => {
+  try {
+    res.json(await updateMission(req.actor, req.params.id, req.body ?? {}));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/missions/:id/archive", requireAuth(), async (req, res, next) => {
+  try {
+    res.json(await archiveMission(req.actor, req.params.id));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/intent-tokens", requireAuth(), async (req, res, next) => {
+  try {
+    res.json(await listIntentTokens(req.actor));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/intent-tokens", requireAuth(), async (req, res, next) => {
+  try {
+    res.status(201).json(await createIntentToken(req.actor, req.body ?? {}));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/intent-tokens/:id/revoke", requireAuth(), async (req, res, next) => {
+  try {
+    res.json(await revokeIntentToken(req.actor, req.params.id));
+  } catch (error) {
+    next(error);
+  }
+});
+
+async function spendVerdict(req, res, next) {
   try {
     const { tokenId, request } = req.body ?? {};
-    const token = tokenId
-      ? await withTenant(req.actor.tenantId, async (client) => {
-          const result = await client.query(`SELECT * FROM intent_tokens WHERE id=$1`, [tokenId]);
-          const row = result.rows[0];
-          return row ? {
-            id: row.id,
-            tenantId: row.tenant_id,
-            action: row.action,
-            vendorOrSystem: row.vendor_or_system,
-            maxAmount: Number(row.max_amount),
-            currency: row.currency,
-            expiresAt: row.expires_at,
-            environment: row.environment,
-            revoked: row.revoked_at != null
-          } : null;
-        })
-      : null;
-
+    const token = tokenId ? await loadIntentTokenForSpend(req.actor, tokenId) : null;
     const verdict = evaluateIntentToken(token, { ...request, tenantId: req.actor.tenantId });
     res.status(verdict.allowed ? 200 : 403).json(verdict);
   } catch (error) {
     next(error);
   }
-});
+}
+
+app.post("/api/intent-tokens/check", requireAuth(), spendVerdict);
+app.post("/api/spend/verdict", requireAuth(), spendVerdict);
 
 app.get("*splat", (_req, res) => {
   res.sendFile(path.join(publicDir, "index.html"));
 });
 
 app.use((error, req, res, _next) => {
-  const status = Number(error.status ?? 500);
+  const status = Number(
+    error.status ?? (error instanceof EvidenceTransitionError ? 409 : 500)
+  );
   console.error(JSON.stringify({
     level: "error",
     correlationId: req.correlationId,

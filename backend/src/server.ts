@@ -638,8 +638,8 @@ app.post('/api/payments/checkout-session', async (req: ExpressRequest, res: Expr
           payment_method_types: ['card'],
           line_items: [{ price: priceId, quantity: 1 }],
           mode: 'subscription',
-          success_url: `${process.env.API_BASE_URL || 'http://localhost:5173'}/billing/success?session_id={CHECKOUT_SESSION_ID}'`,
-          cancel_url: `${process.env.API_BASE_URL || 'http://localhost:5173'}/billing/cancel`,
+          success_url: `${process.env.API_BASE_URL || 'http://localhost:5173'}/#/billing/success?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${process.env.API_BASE_URL || 'http://localhost:5173'}/#/billing/cancel`,
           metadata: {
             tenant_id: tenantId,
             purchase_intent_id: purchaseIntentId,

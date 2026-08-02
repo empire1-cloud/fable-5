@@ -4,20 +4,26 @@ import { useAppState } from '../state/AppState';
 import { systemSnapshot } from '../lib/selectors';
 import { MARKET_NODES } from '../data/genomes';
 import { useSelectedNode } from '../state/selection';
+import { useAuth } from '../auth/AuthProvider';
 import DraftingRoomPanel from './DraftingRoomPanel';
 
 const NAV: { to: string; num: string; label: string }[] = [
-  { to: '/', num: '00', label: 'OVERVIEW' },
+  { to: '/control', num: '00', label: 'OVERVIEW' },
   { to: '/blueprint', num: '01', label: 'BLUEPRINT' },
   { to: '/control-plane', num: '02', label: 'CONTROL PLANE' },
-  { to: '/evidence', num: '03', label: 'EVIDENCE' },
-  { to: '/genomes', num: '04', label: 'GENOMES' },
-  { to: '/allocation', num: '05', label: 'ALLOCATION' },
-  { to: '/governance', num: '06', label: 'GOVERNANCE' },
+  { to: '/control/evidence', num: '03', label: 'EVIDENCE' },
+  { to: '/control/decisions', num: '04', label: 'DECISIONS' },
+  { to: '/control/escalations', num: '05', label: 'ESCALATIONS' },
+  { to: '/genomes', num: '06', label: 'GENOMES' },
+  { to: '/allocation', num: '07', label: 'ALLOCATION' },
+  { to: '/governance', num: '08', label: 'GOVERNANCE' },
+  { to: '/billing', num: '09', label: 'BILLING' },
+  { to: '/control/settings', num: '10', label: 'SETTINGS' },
 ];
 
 export default function Shell({ route, children }: { route: string; children: React.ReactNode }) {
   const { state } = useAppState();
+  const { user, logout } = useAuth();
   const snap = systemSnapshot(state);
   const { nodeId, setNodeId } = useSelectedNode();
   const [navOpen, setNavOpen] = useState(false);
@@ -56,6 +62,12 @@ export default function Shell({ route, children }: { route: string; children: Re
         </div>
         <div className="topbar-status" aria-label="System status">
           <span className="status-dot" aria-hidden="true" /> LIVE DEMO STATE
+        </div>
+        <div className="topbar-account">
+          <span className="topbar-user">{user?.email ?? '—'}</span>
+          <button type="button" className="btn btn--ghost btn--sm" onClick={logout}>
+            SIGN OUT
+          </button>
         </div>
       </header>
 

@@ -30,14 +30,10 @@ export function useIntentTokens(enabled = true) {
       verdict = await api.intentTokens.check({ ...body, request_id: requestId });
     } catch (err) {
       verdict = {
-        verdict_id: "",
-        request_id: requestId,
-        approved: false,
-        reason: err instanceof ApiError ? err.detail : "could not reach the control plane API",
+        allowed: false,
         executed: false,
-        execution_available: false,
-        expires_at: new Date().toISOString(),
-        note: "No server verdict was persisted. Treat the action as refused.",
+        code: "SERVER_UNREACHABLE",
+        reason: `${err instanceof ApiError ? err.detail : "could not reach the control plane API"}. No server verdict was persisted — treat the action as refused.`,
       };
     }
     setLastVerdict(verdict);

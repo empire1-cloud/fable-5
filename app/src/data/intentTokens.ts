@@ -1,6 +1,6 @@
 // DEMO DATA — Founder-Approved Intent Tokens. Product model only, never
 // wired to real money movement.
-import type { IntentToken } from "../types";
+import type { IntentToken } from "../types/intentToken";
 
 export const intentTokens: IntentToken[] = [
   {

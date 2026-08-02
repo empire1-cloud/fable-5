@@ -4,7 +4,7 @@
 // against a token. This is a product model only: it proves the control
 // exists in code. Real execution, when deployed, remains founder-enabled per tenant and server-authoritative.
 
-import type { IntentToken, IntentTokenAuditEntry, IntentTokenRequest } from "../types";
+import type { IntentToken, IntentTokenAuditEntry, IntentTokenRequest } from "../types/intentToken";
 
 export type TokenCheckResult =
   | { valid: true; reason?: never }

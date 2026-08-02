@@ -3,6 +3,98 @@ import { withTenant } from "./db.js";
 import { rankOpportunity } from "./domain/ranking.js";
 import { assertTransition } from "./domain/evidence.js";
 
+const notFound = (message) => Object.assign(new Error(message), { status: 404 });
+const badRequest = (message) => Object.assign(new Error(message), { status: 400 });
+const conflict = (message) => Object.assign(new Error(message), { status: 409 });
+
+function normalizeGrade(value) {
+  const grade = String(value ?? "C").toUpperCase();
+  return ["A", "B", "C"].includes(grade) ? grade : "C";
+}
+
+function normalizeConfidence(value) {
+  const confidence = Number(value ?? 0);
+  if (!Number.isFinite(confidence)) return 0;
+  return Math.min(1, Math.max(0, confidence));
+}
+
+function normalizeStatus(value) {
+  const status = String(value ?? "PLANNED").toUpperCase();
+  return ["PLANNED", "ACTIVE", "BLOCKED", "COMPLETE", "ARCHIVED"].includes(status) ? status : "PLANNED";
+}
+
+/** Serialize one evidence record with every attached child collection. */
+async function serializeEvidence(client, id) {
+  const rec = await client.query(`SELECT * FROM evidence_records WHERE id=$1`, [id]);
+  const row = rec.rows[0];
+  if (!row) throw notFound("Evidence not found");
+
+  const [receipts, verifications, measurements, contradictions, events] = await Promise.all([
+    client.query(`SELECT * FROM evidence_receipts WHERE evidence_id=$1 ORDER BY created_at`, [id]),
+    client.query(`SELECT * FROM evidence_verifications WHERE evidence_id=$1 ORDER BY created_at`, [id]),
+    client.query(`SELECT * FROM evidence_measurements WHERE evidence_id=$1 ORDER BY created_at`, [id]),
+    client.query(`SELECT * FROM contradictions WHERE left_evidence_id=$1 OR right_evidence_id=$1 ORDER BY created_at`, [id]),
+    client.query(`SELECT * FROM evidence_events WHERE evidence_id=$1 ORDER BY created_at`, [id]),
+  ]);
+
+  return {
+    id: row.id,
+    subject_type: row.subject_type,
+    subject_id: row.subject_id,
+    claim: row.claim,
+    state: row.state,
+    grade: row.grade,
+    confidence: Number(row.confidence),
+    created_by: row.created_by,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    receipts: receipts.rows.map((r) => ({
+      id: r.id,
+      receipt_type: r.receipt_type,
+      uri: r.uri,
+      digest: r.digest,
+      description: r.description,
+      grade: r.grade,
+      is_demo: r.is_demo,
+      created_at: r.created_at
+    })),
+    verifications: verifications.rows.map((v) => ({
+      id: v.id,
+      method: v.method,
+      verifier: v.verifier,
+      independent: v.independent,
+      reproducible: v.reproducible,
+      result: v.result,
+      created_at: v.created_at
+    })),
+    measurements: measurements.rows.map((m) => ({
+      id: m.id,
+      gate_type: m.gate_type,
+      reading: m.reading,
+      verdict: m.verdict,
+      created_at: m.created_at
+    })),
+    contradictions: contradictions.rows.map((c) => ({
+      id: c.id,
+      description: c.description,
+      severity: c.severity,
+      resolved: c.resolved_at != null,
+      resolution: c.resolution,
+      resolved_at: c.resolved_at,
+      created_at: c.created_at
+    })),
+    audit_entries: events.rows.map((e) => ({
+      id: e.id,
+      state_from: e.state_from,
+      state_to: e.state_to,
+      reason: e.reason,
+      actor_id: e.actor_id,
+      metadata: e.metadata,
+      created_at: e.created_at
+    })),
+  };
+}
+
 export async function createOpportunity(actor, payload) {
   const ranking = rankOpportunity(payload);
   return withTenant(actor.tenantId, async (client) => {
@@ -114,7 +206,329 @@ export async function transitionEvidence(actor, evidenceId, nextState, context, 
         [randomUUID(), actor.tenantId, context.canonApproval.title, context.canonApproval.body, evidenceId, context.canonApproval.policyVersion, context.canonApproval.approvedBy]
       );
     }
-    return { evidenceId, from: row.state, to: nextState };
+    return serializeEvidence(client, evidenceId);
+  });
+}
+
+export async function listEvidence(actor) {
+  return withTenant(actor.tenantId, async (client) => {
+    const result = await client.query(`SELECT id FROM evidence_records ORDER BY created_at DESC`);
+    const records = [];
+    for (const row of result.rows) records.push(await serializeEvidence(client, row.id));
+    return records;
+  });
+}
+
+export async function getEvidence(actor, evidenceId) {
+  return withTenant(actor.tenantId, async (client) => serializeEvidence(client, evidenceId));
+}
+
+export async function createEvidence(actor, payload) {
+  return withTenant(actor.tenantId, async (client) => {
+    const id = randomUUID();
+    const claim = String(payload.claim ?? payload.subject ?? payload.title ?? "").trim();
+    if (!claim) throw badRequest("claim is required");
+    const metadata = { ...(payload.metadata ?? {}) };
+    if (payload.is_financial) {
+      metadata.financial_scope = {
+        vendor_or_system: payload.vendor_or_system ?? null,
+        financial_amount: payload.financial_amount ?? null,
+        financial_currency: payload.financial_currency ?? null,
+        financial_environment: payload.financial_environment ?? null
+      };
+    }
+    await client.query(
+      `INSERT INTO evidence_records
+        (id, tenant_id, subject_type, subject_id, claim, state, grade, confidence, created_by)
+       VALUES ($1,$2,$3,$4,$5,'PROPOSED',$6,$7,$8)`,
+      [id, actor.tenantId, payload.subject_type ?? "generic", payload.subject_id ?? id, claim, normalizeGrade(payload.grade), normalizeConfidence(payload.confidence), actor.userId]
+    );
+    await client.query(
+      `INSERT INTO evidence_events (id, tenant_id, evidence_id, state_from, state_to, reason, actor_id, metadata)
+       VALUES ($1,$2,$3,NULL,'PROPOSED','Record created',$4,$5)`,
+      [randomUUID(), actor.tenantId, id, actor.userId, metadata]
+    );
+    return serializeEvidence(client, id);
+  });
+}
+
+async function assertEvidenceOwned(client, evidenceId) {
+  const result = await client.query(`SELECT 1 FROM evidence_records WHERE id=$1`, [evidenceId]);
+  if (!result.rows[0]) throw notFound("Evidence not found");
+}
+
+export async function addReceipt(actor, evidenceId, body) {
+  return withTenant(actor.tenantId, async (client) => {
+    await assertEvidenceOwned(client, evidenceId);
+    const description = String(body.description ?? body.content ?? "").trim();
+    if (!description) throw badRequest("receipt description is required");
+    await client.query(
+      `INSERT INTO evidence_receipts
+        (id, tenant_id, evidence_id, receipt_type, uri, digest, description, grade, is_demo)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [randomUUID(), actor.tenantId, evidenceId,
+       body.receipt_type ?? body.kind ?? "artifact",
+       body.uri ?? null,
+       body.digest ?? null,
+       description,
+       normalizeGrade(body.grade),
+       Boolean(body.is_demo ?? false)]
+    );
+    return serializeEvidence(client, evidenceId);
+  });
+}
+
+export async function addVerification(actor, evidenceId, body) {
+  return withTenant(actor.tenantId, async (client) => {
+    await assertEvidenceOwned(client, evidenceId);
+    const receiptId = body.receipt_id ?? null;
+    if (receiptId) {
+      const owned = await client.query(
+        `SELECT 1 FROM evidence_receipts WHERE id=$1 AND evidence_id=$2`,
+        [receiptId, evidenceId]
+      );
+      if (!owned.rows[0]) throw notFound("Receipt not found on this record");
+    }
+    const method = String(body.method ?? "").trim();
+    if (method.length < 8) throw badRequest("verification method must be at least 8 characters");
+    await client.query(
+      `INSERT INTO evidence_verifications
+        (id, tenant_id, evidence_id, method, verifier, independent, reproducible, result)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+      [randomUUID(), actor.tenantId, evidenceId,
+       method,
+       body.verifier ?? actor.email,
+       Boolean(body.independent ?? false),
+       Boolean(body.reproduced ?? false),
+       body.result ?? { receipt_id: receiptId }]
+    );
+    return serializeEvidence(client, evidenceId);
+  });
+}
+
+export async function addMeasurement(actor, evidenceId, body) {
+  return withTenant(actor.tenantId, async (client) => {
+    await assertEvidenceOwned(client, evidenceId);
+    const verdict = String(body.verdict ?? "PASS").toUpperCase();
+    if (!["PASS", "FAIL", "CLONE", "ITERATE", "PAUSE", "KILL"].includes(verdict)) {
+      throw badRequest(`Unknown measurement verdict: ${verdict}`);
+    }
+    await client.query(
+      `INSERT INTO evidence_measurements
+        (id, tenant_id, evidence_id, gate_type, reading, verdict)
+       VALUES ($1,$2,$3,$4,$5,$6)`,
+      [randomUUID(), actor.tenantId, evidenceId,
+       body.gate_type ?? body.gateType ?? "default",
+       body.reading ?? {},
+       verdict]
+    );
+    return serializeEvidence(client, evidenceId);
+  });
+}
+
+export async function listOpportunities(actor) {
+  return withTenant(actor.tenantId, async (client) => {
+    const result = await client.query(
+      `SELECT id, title, summary, ranking_score, ranking_verdict, ranking_factors, evidence_id, status, created_at
+         FROM opportunities
+        ORDER BY ranking_score DESC`
+    );
+    return result.rows.map((r) => ({
+      id: r.id,
+      title: r.title,
+      summary: r.summary,
+      ranking_score: Number(r.ranking_score),
+      ranking_verdict: r.ranking_verdict,
+      ranking_factors: r.ranking_factors,
+      evidence_id: r.evidence_id,
+      status: r.status,
+      created_at: r.created_at
+    }));
+  });
+}
+
+function serializeMission(row) {
+  const p = row.payload ?? {};
+  return {
+    id: row.id,
+    engine_id: row.engine_id,
+    owner: p.owner ?? "",
+    objective: row.title,
+    autonomy_level: p.autonomy_level ?? "L1",
+    status: row.status,
+    success_criteria: p.success_criteria ?? null,
+    evidence_requirement: p.evidence_requirement ?? null,
+    blocker: p.blocker ?? null,
+    escalation_condition: p.escalation_condition ?? null,
+    record_id: row.evidence_id ?? null,
+    created_at: row.created_at
+  };
+}
+
+async function fetchMission(client, missionId) {
+  const result = await client.query(
+    `SELECT * FROM engine_work_items WHERE id=$1 AND item_type='mission'`,
+    [missionId]
+  );
+  const row = result.rows[0];
+  if (!row) throw notFound("Mission not found");
+  return row;
+}
+
+export async function listMissions(actor) {
+  return withTenant(actor.tenantId, async (client) => {
+    const result = await client.query(
+      `SELECT * FROM engine_work_items WHERE item_type='mission' ORDER BY created_at DESC`
+    );
+    return result.rows.map(serializeMission);
+  });
+}
+
+export async function getMission(actor, missionId) {
+  return withTenant(actor.tenantId, async (client) => serializeMission(await fetchMission(client, missionId)));
+}
+
+export async function createMission(actor, payload) {
+  return withTenant(actor.tenantId, async (client) => {
+    const id = randomUUID();
+    const objective = String(payload.objective ?? payload.title ?? "").trim();
+    if (!objective) throw badRequest("mission objective is required");
+    const recordId = payload.record_id ?? null;
+    if (recordId) await assertEvidenceOwned(client, recordId);
+    const missionPayload = {
+      owner: payload.owner ?? actor.email,
+      autonomy_level: String(payload.autonomy_level ?? "L1").toUpperCase(),
+      success_criteria: payload.success_criteria ?? null,
+      evidence_requirement: payload.evidence_requirement ?? null,
+      blocker: payload.blocker ?? null,
+      escalation_condition: payload.escalation_condition ?? null,
+      record_id: recordId
+    };
+    await client.query(
+      `INSERT INTO engine_work_items
+        (id, tenant_id, engine_id, item_type, title, status, payload, evidence_id, created_by)
+       VALUES ($1,$2,$3,'mission',$4,$5,$6,$7,$8)`,
+      [id, actor.tenantId, payload.engine_id ?? "00", objective, normalizeStatus(payload.status), missionPayload, recordId, actor.userId]
+    );
+    return serializeMission(await fetchMission(client, id));
+  });
+}
+
+export async function updateMission(actor, missionId, payload) {
+  return withTenant(actor.tenantId, async (client) => {
+    const existing = await fetchMission(client, missionId);
+    const merged = {
+      owner: payload.owner ?? existing.payload?.owner ?? "",
+      autonomy_level: String(payload.autonomy_level ?? existing.payload?.autonomy_level ?? "L1").toUpperCase(),
+      success_criteria: payload.success_criteria ?? existing.payload?.success_criteria ?? null,
+      evidence_requirement: payload.evidence_requirement ?? existing.payload?.evidence_requirement ?? null,
+      blocker: payload.blocker ?? existing.payload?.blocker ?? null,
+      escalation_condition: payload.escalation_condition ?? existing.payload?.escalation_condition ?? null,
+      record_id: payload.record_id ?? existing.evidence_id ?? null
+    };
+    await client.query(
+      `UPDATE engine_work_items
+          SET title=$1, status=$2, payload=$3, updated_at=now()
+        WHERE id=$4`,
+      [String(payload.objective ?? existing.title), normalizeStatus(payload.status ?? existing.status), merged, missionId]
+    );
+    return serializeMission(await fetchMission(client, missionId));
+  });
+}
+
+export async function archiveMission(actor, missionId) {
+  return withTenant(actor.tenantId, async (client) => {
+    await fetchMission(client, missionId);
+    await client.query(
+      `UPDATE engine_work_items SET status='ARCHIVED', updated_at=now() WHERE id=$1`,
+      [missionId]
+    );
+    return serializeMission(await fetchMission(client, missionId));
+  });
+}
+
+function serializeIntentToken(row) {
+  return {
+    id: row.id,
+    action: row.action,
+    vendor_or_system: row.vendor_or_system,
+    max_amount: Number(row.max_amount),
+    currency: row.currency,
+    environment: row.environment,
+    recurrence: row.recurrence,
+    expires_at: row.expires_at,
+    revoked: row.revoked_at != null,
+    revoked_at: row.revoked_at,
+    approved_by: row.approved_by,
+    created_at: row.created_at
+  };
+}
+
+export async function listIntentTokens(actor) {
+  return withTenant(actor.tenantId, async (client) => {
+    const result = await client.query(`SELECT * FROM intent_tokens ORDER BY created_at DESC`);
+    return result.rows.map(serializeIntentToken);
+  });
+}
+
+export async function createIntentToken(actor, payload) {
+  return withTenant(actor.tenantId, async (client) => {
+    const maxAmount = Number(payload.max_amount ?? payload.maxAmount);
+    if (!Number.isFinite(maxAmount) || maxAmount < 0) throw badRequest("max_amount is required and must be >= 0");
+    const expiresAt = new Date(payload.expires_at ?? Date.now() + 30 * 24 * 60 * 60 * 1000);
+    if (Number.isNaN(expiresAt.getTime())) throw badRequest("expires_at is not a valid date");
+    const id = randomUUID();
+    await client.query(
+      `INSERT INTO intent_tokens
+        (id, tenant_id, approved_by, action, vendor_or_system, max_amount, currency, expires_at, environment, recurrence)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+      [id, actor.tenantId, actor.userId,
+       payload.action ?? "pay",
+       payload.vendor_or_system ?? payload.vendorOrSystem ?? "",
+       maxAmount,
+       payload.currency ?? "USD",
+       expiresAt,
+       payload.environment ?? "sandbox",
+       payload.recurrence ?? "one-shot"]
+    );
+    const result = await client.query(`SELECT * FROM intent_tokens WHERE id=$1`, [id]);
+    return serializeIntentToken(result.rows[0]);
+  });
+}
+
+export async function revokeIntentToken(actor, tokenId) {
+  return withTenant(actor.tenantId, async (client) => {
+    const result = await client.query(
+      `UPDATE intent_tokens SET revoked_at=now() WHERE id=$1 AND revoked_at IS NULL RETURNING *`,
+      [tokenId]
+    );
+    if (!result.rows[0]) {
+      const exists = await client.query(`SELECT 1 FROM intent_tokens WHERE id=$1`, [tokenId]);
+      if (!exists.rows[0]) throw notFound("Intent Token not found");
+      const row = (await client.query(`SELECT * FROM intent_tokens WHERE id=$1`, [tokenId])).rows[0];
+      return serializeIntentToken(row);
+    }
+    return serializeIntentToken(result.rows[0]);
+  });
+}
+
+/** Shape used by the spend verdict engine (camelCase keys the domain expects). */
+export async function loadIntentTokenForSpend(actor, tokenId) {
+  return withTenant(actor.tenantId, async (client) => {
+    const result = await client.query(`SELECT * FROM intent_tokens WHERE id=$1`, [tokenId]);
+    const row = result.rows[0];
+    if (!row) return null;
+    return {
+      id: row.id,
+      tenantId: row.tenant_id,
+      action: row.action,
+      vendorOrSystem: row.vendor_or_system,
+      maxAmount: Number(row.max_amount),
+      currency: row.currency,
+      expiresAt: row.expires_at,
+      environment: row.environment,
+      revoked: row.revoked_at != null
+    };
   });
 }
 

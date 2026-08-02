@@ -23,8 +23,8 @@ export default function Home() {
           Seeded records stay labeled as demo data; live Cofounder execution reports separately.
         </p>
         <div className="hero-actions">
-          <a className="btn btn--primary" href={href('/control-plane')}>
-            Enter Control Plane →
+          <a className="btn btn--primary" href={href('/control/evidence')}>
+            Open the Evidence Ledger →
           </a>
           <a className="btn btn--ghost" href={href('/blueprint')}>
             Inspect System Blueprint

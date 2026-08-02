@@ -1,5 +1,5 @@
 // DEMO DATA — the Opportunity Graph, ranked candidates. Not live scoring.
-import type { Opportunity } from "../types";
+import type { Opportunity } from "../types/opportunity";
 
 export const opportunities: Opportunity[] = [
   {

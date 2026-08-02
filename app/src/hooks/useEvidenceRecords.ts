@@ -32,7 +32,7 @@ export function useEvidenceRecords(enabled = true) {
   ): Promise<WriteResult> => {
     try {
       add(await api.evidence.create({
-        subject,
+        claim: subject,
         is_financial: isFinancial,
         ...(isFinancial ? scope : {}),
       }));
@@ -41,18 +41,14 @@ export function useEvidenceRecords(enabled = true) {
   }, [add]);
 
   const advance = useCallback(
-    (id: string, to: string, reason: string, expectedVersion?: number) =>
-      wrap(() => api.evidence.transition(id, { to, reason, expected_version: expectedVersion })),
-    [wrap],
-  );
-
-  const setFields = useCallback(
-    (id: string, fields: Record<string, string | null>) => wrap(() => api.evidence.setFields(id, fields)),
+    (id: string, to: string, reason: string) =>
+      wrap(() => api.evidence.transition(id, { to, reason })),
     [wrap],
   );
 
   const addReceipt = useCallback(
-    (id: string, kind: string, content: string) => wrap(() => api.evidence.addReceipt(id, { kind, content })),
+    (id: string, kind: string, content: string) =>
+      wrap(() => api.evidence.addReceipt(id, { receipt_type: kind, description: content })),
     [wrap],
   );
 
@@ -62,14 +58,9 @@ export function useEvidenceRecords(enabled = true) {
     [wrap],
   );
 
-  const addContradiction = useCallback(
-    (id: string, detail: string) => wrap(() => api.evidence.addContradiction(id, { detail })),
-    [wrap],
-  );
-
-  const resolveContradiction = useCallback(
-    (id: string, contradictionId: string, detail: string) =>
-      wrap(() => api.evidence.resolveContradiction(id, contradictionId, { detail })),
+  const addMeasurement = useCallback(
+    (id: string, gateType: string, verdict: string, reading?: unknown) =>
+      wrap(() => api.evidence.addMeasurement(id, { gate_type: gateType, reading, verdict })),
     [wrap],
   );
 
@@ -80,10 +71,8 @@ export function useEvidenceRecords(enabled = true) {
     reload: list.reload,
     create,
     advance,
-    setFields,
     addReceipt,
     addVerification,
-    addContradiction,
-    resolveContradiction,
+    addMeasurement,
   };
 }

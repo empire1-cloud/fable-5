@@ -1,7 +1,8 @@
 import { useCallback } from "react";
 import { useLocalStorage } from "./useLocalStorage";
 import { allocationTargets as demoTargets, resourcePools as demoPools } from "../data/allocation";
-import type { AllocationTarget, ResourceAllocation, ResourceType } from "../types";
+import type { AllocationTarget, ResourceAllocation } from "../types/allocation";
+import type { ResourceType } from "../types/enums";
 
 /**
  * Local, persisted view over demo Capital & Resource Allocation state. Cash

@@ -1,5 +1,5 @@
 // DEMO DATA — Market Nodes (genome × geography).
-import type { MarketNode } from "../types";
+import type { MarketNode } from "../types/marketNode";
 
 export const marketNodes: MarketNode[] = [
   {

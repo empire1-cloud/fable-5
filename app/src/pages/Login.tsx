@@ -2,8 +2,8 @@ import { useState } from "react";
 import { Sheet, PanelCard } from "../components";
 import { useAuth } from "../auth/AuthProvider";
 import { ApiError } from "../lib/api";
-
-type Mode = "login" | "register";
+import { afterSignInTarget } from "../lib/routes";
+import { href, navigate, parseRoute, useHashRoute } from "../lib/router";
 
 const FIELD_STYLE: React.CSSProperties = {
   fontFamily: "var(--font-mono)",
@@ -16,11 +16,11 @@ const FIELD_STYLE: React.CSSProperties = {
 };
 
 export function Login() {
-  const { login, register } = useAuth();
-  const [mode, setMode] = useState<Mode>("login");
+  const { login } = useAuth();
+  const raw = useHashRoute();
+  const { query } = parseRoute(raw);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [orgName, setOrgName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -29,10 +29,15 @@ export function Login() {
     setError(null);
     setBusy(true);
     try {
-      if (mode === "login") await login(email, password);
-      else await register(email, password, orgName);
+      await login(email, password);
+      const next = query.get("next");
+      navigate(afterSignInTarget(next ?? "/control"));
     } catch (err) {
-      setError(err instanceof ApiError ? err.detail : "could not reach the control plane API");
+      setError(
+        err instanceof ApiError
+          ? err.detail
+          : "could not reach the control plane API — check that it is running, then try again",
+      );
     } finally {
       setBusy(false);
     }
@@ -44,7 +49,7 @@ export function Login() {
       <main className="auth-main" id="main-content">
         <Sheet
           eyebrow="FABLE-5 · CONTROL PLANE"
-          title={mode === "login" ? "Sign in" : "Create an organisation"}
+          title="Sign in"
           note="server-authoritative · every record below belongs to your org and no one else's"
         >
           <form onSubmit={submit} style={{ display: "grid", gap: 12, maxWidth: 440 }}>
@@ -60,35 +65,16 @@ export function Login() {
               />
             </label>
 
-            {mode === "register" && (
-              <label style={{ display: "grid", gap: 6 }}>
-                <span className="card-label">ORGANISATION NAME</span>
-                <input
-                  type="text"
-                  required
-                  value={orgName}
-                  onChange={(e) => setOrgName(e.target.value)}
-                  style={FIELD_STYLE}
-                />
-              </label>
-            )}
-
             <label style={{ display: "grid", gap: 6 }}>
               <span className="card-label">PASSWORD</span>
               <input
                 type="password"
                 required
-                minLength={mode === "register" ? 12 : undefined}
-                autoComplete={mode === "login" ? "current-password" : "new-password"}
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 style={FIELD_STYLE}
               />
-              {mode === "register" && (
-                <span className="card-footnote" style={{ borderTop: "none", paddingTop: 0 }}>
-                  Minimum 12 characters. Hashed with Argon2id — the server never stores it.
-                </span>
-              )}
             </label>
 
             {error && (
@@ -99,18 +85,11 @@ export function Login() {
 
             <div className="btn-row">
               <button type="submit" className="btn btn--accent" disabled={busy}>
-                {busy ? "…" : mode === "login" ? "SIGN IN" : "CREATE ORGANISATION"}
+                {busy ? "…" : "SIGN IN"}
               </button>
-              <button
-                type="button"
-                className="btn"
-                onClick={() => {
-                  setMode(mode === "login" ? "register" : "login");
-                  setError(null);
-                }}
-              >
-                {mode === "login" ? "NEED AN ACCOUNT?" : "ALREADY HAVE ONE?"}
-              </button>
+              <a className="btn" href={href("/founding-access")}>
+                REQUEST FOUNDING ACCESS
+              </a>
             </div>
           </form>
         </Sheet>
