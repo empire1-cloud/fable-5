@@ -1,0 +1,12 @@
+# local agent workspace
+.claude/
+
+# local backups (we evolve, never delete — kept on disk, not in git)
+app.backup.*/
+
+# backend runtime & secrets
+backend/.env
+backend/dist/
+backend/node_modules/
+backend/src/server.ts.before-rls-fix
+backend/src/server.ts.save

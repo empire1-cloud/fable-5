@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 import { AUTH_EXPIRED_EVENT, api, tokenStore } from "../lib/api";
 import type { Me } from "../lib/api";
 
+const USER_STORAGE_KEY = "fable5:user";
+
 interface AuthState {
   user: Me | null;
   /** True while we are still asking the server who we are on first paint. */
@@ -25,11 +27,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     try {
-      setUser(await api.auth.me());
+      const user = await api.auth.me();
+      setUser(user);
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
     } catch {
       // A stored token the server no longer honours is not a session.
       tokenStore.clear();
       setUser(null);
+      localStorage.removeItem(USER_STORAGE_KEY);
     } finally {
       setLoading(false);
     }
@@ -45,18 +50,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     const token = await api.auth.login({ email, password });
     tokenStore.set(token.access_token);
-    setUser(await api.auth.me());
+    try {
+      const user = await api.auth.me();
+      setUser(user);
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+    } catch {
+      // If we cannot fetch the user, we still have the token but no user.
+      // We'll clear the user state and the stored user.
+      setUser(null);
+      localStorage.removeItem(USER_STORAGE_KEY);
+    }
   }, []);
 
   const register = useCallback(async (email: string, password: string, orgName: string) => {
     const token = await api.auth.register({ email, password, org_name: orgName });
     tokenStore.set(token.access_token);
-    setUser(await api.auth.me());
+    try {
+      const user = await api.auth.me();
+      setUser(user);
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+    } catch {
+      setUser(null);
+      localStorage.removeItem(USER_STORAGE_KEY);
+    }
   }, []);
 
   const logout = useCallback(() => {
     tokenStore.clear();
     setUser(null);
+    localStorage.removeItem(USER_STORAGE_KEY);
   }, []);
 
   const value = useMemo(
