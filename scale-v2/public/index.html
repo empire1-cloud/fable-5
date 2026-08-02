@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>FABLE-5 · Control Plane</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="noise"></div>
+  <main id="app">
+    <section id="login-view" class="login-shell">
+      <div class="brandline"><span>FABLE-5</span><small>CONTROL PLANE · REV 2.0</small></div>
+      <div class="login-card">
+        <p class="eyebrow">SERVER-AUTHORITATIVE</p>
+        <h1>Sign in to your organization</h1>
+        <p class="muted">Every record belongs to your organization and no one else’s.</p>
+        <form id="login-form">
+          <label>Email<input id="email" type="email" autocomplete="username" required value="monieq113@gmail.com"></label>
+          <label>Password<input id="password" type="password" autocomplete="current-password" required></label>
+          <button type="submit">SIGN IN</button>
+        </form>
+        <p id="login-error" class="error"></p>
+      </div>
+      <div class="boundary-grid">
+        <article><b>THE SERVER DECIDES</b><p>Evidence states, opportunity rank, and spend verdicts are computed on the server and re-checked on every write.</p></article>
+        <article><b>NO SILENT MONEY</b><p>Intent Tokens return a verdict. Execution remains false until an organization deliberately enables an approved connector.</p></article>
+        <article><b>ENGINE 07 IS THE SUBSTRATE</b><p>Every loop reads governance, memory, and verification. Every outcome writes back.</p></article>
+      </div>
+    </section>
+
+    <section id="control-view" class="control hidden">
+      <header>
+        <div class="brandline"><span>FABLE-5</span><small>SHEET 01 · SYSTEM BLUEPRINT · REV 2.0</small></div>
+        <div class="session"><span id="tenant-name"></span><button id="logout">SIGN OUT</button></div>
+      </header>
+      <div class="hero">
+        <p class="eyebrow">INTERACTIVE SYSTEM MAP</p>
+        <h1>Evidence-governed company intelligence</h1>
+        <p>Click an engine to inspect inputs, outputs, KPIs, receipts, escalation conditions, and its authorization gate.</p>
+      </div>
+      <section id="engine-grid" class="engine-grid"></section>
+      <section id="engine-detail" class="engine-detail"></section>
+    </section>
+  </main>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

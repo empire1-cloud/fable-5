@@ -1,0 +1,33 @@
+name: FABLE-5 Scale V2
+
+on:
+  pull_request:
+    paths:
+      - 'scale-v2/**'
+      - '.github/workflows/fable5-scale-v2.yml'
+  push:
+    branches:
+      - 'evolve/fable5-scale-v2'
+    paths:
+      - 'scale-v2/**'
+      - '.github/workflows/fable5-scale-v2.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  domain-gate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: scale-v2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: scale-v2/package.json
+      - run: npm install --ignore-scripts
+      - run: npm run check
+      - run: npm test
