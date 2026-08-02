@@ -21,13 +21,8 @@ const tokenHash = (token) => createHash("sha256").update(token).digest("hex");
 
 export async function login(email, password) {
   const result = await pool.query(
-    `SELECT u.id AS user_id, u.email, u.password_hash, m.tenant_id, m.role, t.name AS tenant_name
-       FROM users u
-       JOIN memberships m ON m.user_id = u.id AND m.is_active = true
-       JOIN tenants t ON t.id = m.tenant_id
-      WHERE lower(u.email) = lower($1)
-      ORDER BY m.created_at
-      LIMIT 1`,
+    `SELECT user_id, email, password_hash, tenant_id, role, tenant_name
+       FROM public.fable5_authenticate($1)`,
     [email]
   );
   const actor = result.rows[0];
@@ -56,14 +51,8 @@ export async function login(email, password) {
 export async function authenticateToken(token) {
   if (!token) return null;
   const result = await pool.query(
-    `SELECT s.user_id, s.tenant_id, u.email, m.role, t.name AS tenant_name
-       FROM auth_sessions s
-       JOIN users u ON u.id = s.user_id
-       JOIN memberships m ON m.user_id = s.user_id AND m.tenant_id = s.tenant_id AND m.is_active = true
-       JOIN tenants t ON t.id = s.tenant_id
-      WHERE s.token_hash = $1
-        AND s.revoked_at IS NULL
-        AND s.expires_at > now()`,
+    `SELECT user_id, tenant_id, email, role, tenant_name
+       FROM public.fable5_session_actor($1)`,
     [tokenHash(token)]
   );
   const row = result.rows[0];
