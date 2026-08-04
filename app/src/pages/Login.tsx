@@ -29,7 +29,7 @@ export function Login() {
     setError(null);
     setBusy(true);
     try {
-      await login(email, password);
+      await login(email.trim(), password);
       const next = query.get("next");
       navigate(afterSignInTarget(next ?? "/control"));
     } catch (err) {

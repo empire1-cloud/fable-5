@@ -88,6 +88,14 @@ test("auth: a forged/expired token is refused on /me", async () => {
   assert.equal(me.status, 401);
 });
 
+test("auth: login tolerates stray whitespace on email and password", async () => {
+  const login = await req("POST", "/api/auth/login", {
+    body: { email: `  ${EMAIL}  `, password: ` ${PASSWORD}\n` },
+  });
+  assert.equal(login.status, 200);
+  assert.equal(login.body.actor.email, EMAIL);
+});
+
 test("evidence: create → gates → receipts → verify → measure, with skip refused", async () => {
   const token = await loginToken();
   const claim = `Integration evidence ${Date.now()} ${randomUUID().slice(0, 8)}`;

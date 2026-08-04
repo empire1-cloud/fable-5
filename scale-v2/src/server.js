@@ -66,7 +66,8 @@ app.get("/api/health", async (_req, res, next) => {
 
 app.post("/api/auth/login", async (req, res, next) => {
   try {
-    const { email, password } = req.body ?? {};
+    const email = String(req.body?.email ?? "").trim();
+    const password = String(req.body?.password ?? "").trim();
     if (!email || !password) return res.status(400).json({ error: "Email and password are required" });
     const result = await login(email, password);
     if (!result) return res.status(401).json({ error: "REFUSED", reason: "Invalid credentials" });
