@@ -165,17 +165,29 @@ function tokenStatus(t: (typeof intentTokens)[number]): { label: string; tone: C
   return expired ? { label: "EXPIRED", tone: "dim" } : { label: "ACTIVE", tone: "gold" };
 }
 
-/* ── category copy (what the OS enables, not the features) ─────────── */
+/* ── category copy — outcomes, not features ────────────────────────── */
 const STAGE_LABELS: Record<string, string> = {
   "00": "Strategy",
   "01": "Markets",
   "02": "Products",
-  "03": "Assets",
+  "03": "Operations",
   "04": "Growth",
-  "05": "Revenue",
+  "05": "Finance",
   "06": "Scale",
 };
 const LOOP_STAGES = ["00", "01", "02", "03", "04", "05", "06"];
+
+const DEPARTMENTS = [
+  { e: "00", name: "Strategy", core: false },
+  { e: "01", name: "Markets", core: false },
+  { e: "02", name: "Products", core: false },
+  { e: "03", name: "Operations", core: false },
+  { e: "04", name: "Growth", core: false },
+  { e: "05", name: "Finance", core: false },
+  { e: "06", name: "Scale", core: false },
+  { e: "07", name: "Memory", core: true },
+  { e: "08", name: "Capital", core: true },
+];
 
 const COMPARISON: { today: string; fable: string }[] = [
   { today: "Buy AI tools", fable: "Run an AI company" },
@@ -187,109 +199,101 @@ const COMPARISON: { today: string; fable: string }[] = [
   { today: "AI assistants", fable: "AI workforce" },
 ];
 
-const OUTCOMES = [
+const PROMISES = [
   {
-    headline: "Your company remembers.",
-    body: "Every decision keeps its evidence, its assumptions, and the authority that allowed it. Nothing is a one-off.",
+    title: "Never repeat the same expensive mistake twice.",
+    body: "What gets killed stays known. Negative intelligence is kept, not deleted — the next company that tries the same thing finds it before it spends.",
+    tag: "MEMORY",
   },
   {
-    headline: "Your company refuses bad decisions.",
-    body: "New claims are checked against everything the company already knows. Disagreement blocks progress until it is resolved.",
+    title: "Know why every decision was made.",
+    body: "Every decision carries its evidence, its assumptions, and the authority that allowed it. Nothing is a one-off you have to re-explain.",
+    tag: "DECISIONS",
   },
   {
-    headline: "Your company cannot spend money without permission.",
-    body: "No valid founder-approved token, no spend. Cash moves only on an explicit, in-scope authorization.",
+    title: "See who approved every dollar.",
+    body: "Cash moves only on a founder-approved, in-scope token. Every dollar has an owner, a ceiling, and a logged trail.",
+    tag: "CAPITAL",
   },
   {
-    headline: "Your company only counts proven work.",
-    body: "Work counts as done when it has been independently verified. Until then it is labelled exactly what it is: a claim.",
-  },
-  {
-    headline: "Your company stays in bounds.",
-    body: "Every action is checked against the boundary you set, and the boundary is re-asserted on every single action.",
-  },
-  {
-    headline: "Your company learns once.",
-    body: "Proven outcomes write back to canon. The company compounds intelligence — only in the places it has actually proven something.",
+    title: "Prove every result.",
+    body: "A claim counts as done only when it is independently verified. Until then it is labelled exactly what it is: a claim.",
+    tag: "PROOF",
   },
 ];
 
+/* ── live-company counts, computed from real demo data ─────────────── */
+const LIVE = {
+  decisions: opportunities.length,
+  missionsInMotion: SEED_MISSIONS.filter((m) => m.status !== "BLOCKED").length,
+  missionsBlocked: SEED_MISSIONS.filter((m) => m.status === "BLOCKED").length,
+  evidence: evidenceRecords.length,
+  tokens: intentTokens.length,
+  revoked: intentTokens.filter((t) => t.revoked).length,
+  expired: intentTokens.filter((t) => !t.revoked && new Date(t.expiresAt).getTime() < Date.now()).length,
+  contradictions: evidenceRecords.flatMap((r) => r.contradictions).filter((c) => !c.resolved).length,
+  memory: canonEntries.length + operatingPrimitives.length,
+};
+
 /* ── the page ──────────────────────────────────────────────────────── */
 export default function PublicHome() {
-  const topOpp = opportunities[1];
-  const canonized = evidenceRecords.find((r) => r.state === "CANONIZED");
-  const revokedToken = intentTokens.find((t) => t.revoked);
-  const governance = ENGINES.find((e) => e.id === "07");
-  const capital = ENGINES.find((e) => e.id === "08");
-
   return (
     <div className="pub-page pub-page--cp">
-      {/* 00 — HERO */}
-      <section className="pub-hero pub-hero--cp" aria-label="Introduction">
+      {/* 00 — THE HERO: a live company, not a pitch */}
+      <section className="pub-hero pub-hero--live" aria-label="A live company running on FABLE-5">
         <ParticleCanvas />
-        <div className="pub-hero-copy">
+        <div className="pub-hero-inner">
           <SectionLabel num="00" text="FABLE-5 · THE AI COMPANY OPERATING SYSTEM" />
-          <h1 className="pub-hero-title">
-            Build an <span className="gold-shimmer">AI company</span>. Not an AI workflow.
+
+          <h1 className="pub-hero-title pub-hero-title--live">
+            This company is <span className="gold-shimmer">alive.</span>
           </h1>
-          <p className="pub-hero-sub">
-            FABLE-5 is the first operating system built to run an AI-native company — strategy, markets, products,
-            assets, growth, revenue, and scale, governed on one path. It doesn't automate a department. It runs
-            the whole company.
+
+          {/* live readout — real counts from the product's own data model */}
+          <div className="pub-console" aria-label="Live company readout">
+            <div className="pub-console-bar">
+              <span className="pub-console-dots" aria-hidden="true">
+                <i /><i /><i />
+              </span>
+              <span className="pub-console-title">FABLE-5 · LIVE COMPANY</span>
+              <span className="pub-console-live">
+                <span className="pub-live-dot" /> LIVE
+              </span>
+            </div>
+            <div className="pub-console-body">
+              <div className="pub-console-hline" />
+              <ConsoleRow k="LIVE DECISIONS" v={String(LIVE.decisions)} m="ranked by evidence" />
+              <ConsoleRow k="MISSIONS IN MOTION" v={String(LIVE.missionsInMotion)} m={`${LIVE.missionsBlocked} blocked`} />
+              <ConsoleRow k="EVIDENCE RECORDS" v={String(LIVE.evidence)} m="proof-gated" />
+              <ConsoleRow k="CAPITAL TOKENS" v={String(LIVE.tokens)} m={`${LIVE.revoked} revoked · ${LIVE.expired} expired`} />
+              <ConsoleRow k="CONTRADICTIONS" v={String(LIVE.contradictions)} m="blocking a decision" tone="warn" />
+              <ConsoleRow k="MEMORY WRITTEN" v={String(LIVE.memory)} m="proven outcomes only" />
+              <div className="pub-console-hline" />
+              <ConsoleRow k="MEMORY" v="NORMAL" m="remembers everything" />
+              <ConsoleRow k="CAPITAL" v="NO SILENT SPENDING" m="permission required" tone="warn" />
+              <ConsoleRow k="VERIFICATION" v="ENFORCED" m="nothing skips the gate" tone="info" />
+              <span className="pub-console-cursor" aria-hidden="true">█</span>
+            </div>
+          </div>
+
+          <p className="pub-hero-sub pub-hero-sub--live">
+            FABLE-5 is the operating system for AI-native companies. It runs the whole company — strategy to scale —
+            it doesn't automate a department.
           </p>
+
           <div className="pub-hero-actions">
             <a className="pub-btn pub-btn--gold" href={href("/founding-access")}>
               Enter founding access
             </a>
             <a className="pub-btn pub-btn--ghost" href={href("/how-it-works")}>
-              View how it works
+              How it works →
             </a>
           </div>
-          <p className="pub-hero-fine">
-            The panels below render live from the real product data model — the same ledgers this operating system
-            would run your company on. There is no invented pricing and no fabricated metrics on this site.
-          </p>
-        </div>
 
-        <div className="pub-hero-console" aria-label="Live operating-system readout">
-          <PanelHead label="LIVE CONSOLE" live />
-          <div className="pub-console-row">
-            <span className="pub-console-k">DECISION #1</span>
-            <span className="pub-console-v">
-              {topOpp.title} · <span className="pub-console-hi">{topOpp.epistemicType}</span>
-            </span>
-            <span className="pub-console-m">
-              score {topOpp.score} · EV {money.format(topOpp.expectedValue)}
-            </span>
-          </div>
-          <div className="pub-console-row">
-            <span className="pub-console-k">PROVEN OUTCOME</span>
-            <span className="pub-console-v">
-              {canonized?.id} · {canonized?.state}
-            </span>
-            <span className="pub-console-m">
-              {canonized?.measurement?.kpi} {canonized?.measurement?.value} vs threshold{" "}
-              {canonized?.measurement?.threshold}
-            </span>
-          </div>
-          <div className="pub-console-row">
-            <span className="pub-console-k">CAPITAL</span>
-            <span className="pub-console-v">
-              {revokedToken?.tokenId} · <span className="pub-console-warn">REVOKED</span>
-            </span>
-            <span className="pub-console-m">
-              {money.format(revokedToken?.maxAmount ?? 0)} frozen without permission
-            </span>
-          </div>
-          <div className="pub-console-row">
-            <span className="pub-console-k">LEARNED</span>
-            <span className="pub-console-v">
-              {canonEntries.length} canon entries · {operatingPrimitives.length} primitive
-            </span>
-            <span className="pub-console-m">
-              conf {canonEntries.map((c) => c.confidence.toFixed(2)).join(" / ")}
-            </span>
-          </div>
+          <p className="pub-hero-fine">
+            Every number above is real — computed from the product's own data model. There is no invented pricing and
+            no fabricated metrics on this site.
+          </p>
         </div>
       </section>
 
@@ -297,10 +301,10 @@ export default function PublicHome() {
       <section className="pub-section" aria-labelledby="cp-loop-title">
         <SectionLabel num="01" text="THE COMPANY LOOP" />
         <h2 id="cp-loop-title" className="pub-h2">
-          One path runs the whole company — every function, in order, on the same rails.
+          One path runs the whole company — every department, in order, on the same rails.
         </h2>
         <div className="pub-panel pub-panel--plain pub-loop-panel">
-          <PanelHead label="STRATEGY → MARKETS → PRODUCTS → ASSETS → GROWTH → REVENUE → SCALE" />
+          <PanelHead label="STRATEGY → MARKETS → PRODUCTS → OPERATIONS → GROWTH → FINANCE → SCALE" />
           <div className="pub-loop">
             {LOOP_STAGES.map((id) => {
               const e = ENGINE_MAP[id];
@@ -331,8 +335,8 @@ export default function PublicHome() {
             <span className="pub-loop-governed-item pub-loop-governed-item--gold">Governed.</span>
           </div>
           <p className="pub-loop-sub">
-            Engines {governance?.id} and {capital?.id} — governance and capital — sit under the whole loop.
-            Nothing advances without them.
+            Memory and Capital sit under the whole loop — one remembers everything, one lets no dollar move without
+            permission. Nothing advances without them.
           </p>
         </div>
       </section>
@@ -368,25 +372,76 @@ export default function PublicHome() {
         </p>
       </section>
 
-      {/* 03 — WHAT YOUR COMPANY CAN DO */}
-      <section className="pub-section" aria-labelledby="cp-outcome-title">
-        <SectionLabel num="03" text="WHAT YOUR COMPANY CAN DO" />
-        <h2 id="cp-outcome-title" className="pub-h2">
-          Six promises — in outcomes, not features.
+      {/* 03 — YOUR COMPANY REMEMBERS */}
+      <section className="pub-section" aria-labelledby="cp-remember-title">
+        <SectionLabel num="03" text="YOUR COMPANY REMEMBERS" />
+        <div className="pub-remember-grid">
+          <div>
+            <h2 id="cp-remember-title" className="pub-remember-stanza">
+              Companies forget.
+              <br />
+              <span className="pub-remember-dim">People leave. Chats disappear. Docs drift. AI forgets.</span>
+              <br />
+              FABLE-5 <span className="gold-shimmer">doesn't.</span>
+            </h2>
+            <p className="pub-remember-sub">
+              Every lesson becomes institutional memory. Your company keeps what it learned, what it killed, and why —
+              long after the people and the threads are gone.
+            </p>
+          </div>
+
+          <div className="pub-panel pub-panel--gold">
+            <PanelHead label="WHAT THIS COMPANY ALREADY REMEMBERS" right={`${LIVE.memory} entries`} />
+            {canonEntries.map((c) => (
+              <div className="pub-remember-entry" key={c.id}>
+                <div className="pub-remember-entry-head">
+                  <span className="pub-remember-entry-id">{c.id}</span>
+                  <Chip tone={c.kind === "pattern" ? "gold" : "warn"}>{c.kind}</Chip>
+                </div>
+                <p className="pub-remember-entry-text">{c.title}</p>
+                <p className="pub-remember-entry-meta">
+                  learned from {c.origin} · confidence {c.confidence.toFixed(2)}
+                </p>
+              </div>
+            ))}
+            {operatingPrimitives.map((p) => (
+              <div className="pub-remember-entry" key={p.id}>
+                <div className="pub-remember-entry-head">
+                  <span className="pub-remember-entry-id">{p.id}</span>
+                  <Chip tone="cyan">reusable</Chip>
+                </div>
+                <p className="pub-remember-entry-text">{p.name}</p>
+                <p className="pub-remember-entry-meta">
+                  {p.evidence} · reusable in {p.reusableIn.join(", ")}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 04 — THE PROMISES */}
+      <section className="pub-section" aria-labelledby="cp-promise-title">
+        <SectionLabel num="04" text="THE PROMISES" />
+        <h2 id="cp-promise-title" className="pub-h2">
+          Four promises. Four outcomes.
         </h2>
         <div className="pub-cp-grid pub-cp-grid--2">
-          {OUTCOMES.map((o) => (
-            <article className="pub-panel pub-panel--gold" key={o.headline}>
-              <h3 className="pub-panel-title pub-outcome-title">{o.headline}</h3>
-              <p className="pub-card-body">{o.body}</p>
+          {PROMISES.map((p) => (
+            <article className="pub-panel pub-panel--gold" key={p.tag}>
+              <div className="pub-panel-head">
+                <Chip tone="gold">{p.tag}</Chip>
+              </div>
+              <h3 className="pub-panel-title pub-promise-title">{p.title}</h3>
+              <p className="pub-card-body">{p.body}</p>
             </article>
           ))}
         </div>
       </section>
 
-      {/* 04 — DECISION QUEUE */}
+      {/* 05 — THE COMPANY DECIDES */}
       <section className="pub-section" aria-labelledby="cp-opp-title">
-        <SectionLabel num="04" text="DECISION QUEUE" />
+        <SectionLabel num="05" text="STRATEGY · THE COMPANY DECIDES" />
         <h2 id="cp-opp-title" className="pub-h2">
           The OS decides what deserves attention — ranked by evidence, not narrative.
         </h2>
@@ -429,11 +484,11 @@ export default function PublicHome() {
         </div>
       </section>
 
-      {/* 05 — COMPANY EXECUTION */}
+      {/* 06 — THE COMPANY EXECUTES */}
       <section className="pub-section" aria-labelledby="cp-mission-title">
-        <SectionLabel num="05" text="COMPANY EXECUTION" />
+        <SectionLabel num="06" text="OPERATIONS · THE COMPANY EXECUTES" />
         <h2 id="cp-mission-title" className="pub-h2">
-          The company, executing — every mission names its success criteria and its stop condition up front.
+          Every mission names its success criteria and its stop condition up front.
         </h2>
         <div className="pub-panel pub-panel--plain">
           <PanelHead label="MISSION QUEUE" right={`${SEED_MISSIONS.length} missions`} />
@@ -456,9 +511,9 @@ export default function PublicHome() {
         </div>
       </section>
 
-      {/* 06 — PROOF RAIL */}
+      {/* 07 — NOTHING IS PROGRESS UNTIL IT IS PROVEN */}
       <section className="pub-section" aria-labelledby="cp-ev-title">
-        <SectionLabel num="06" text="PROOF RAIL" />
+        <SectionLabel num="07" text="PROOF · NOTHING COUNTS TWICE" />
         <h2 id="cp-ev-title" className="pub-h2">
           A claim only counts when it is proven — one gate at a time, nothing skips.
         </h2>
@@ -490,7 +545,7 @@ export default function PublicHome() {
                   </span>
                 </div>
               </div>
-              {r.isFinancial && <p className="pub-panel-tag">FINANCIAL · requires Intent Token</p>}
+              {r.isFinancial && <p className="pub-panel-tag">FINANCIAL · permission required</p>}
               {r.measurement && (
                 <p className="pub-panel-tag">
                   {r.measurement.kpi} {r.measurement.value} vs threshold {r.measurement.threshold}{" "}
@@ -503,9 +558,9 @@ export default function PublicHome() {
         </div>
       </section>
 
-      {/* 07 — CAPITAL */}
+      {/* 08 — NO MONEY WITHOUT PERMISSION */}
       <section className="pub-section" aria-labelledby="cp-cap-title">
-        <SectionLabel num="07" text="CAPITAL" />
+        <SectionLabel num="08" text="CAPITAL · NO MONEY WITHOUT PERMISSION" />
         <h2 id="cp-cap-title" className="pub-h2">
           The company cannot spend money without permission. Here is the proof.
         </h2>
@@ -550,58 +605,9 @@ export default function PublicHome() {
         </div>
       </section>
 
-      {/* 08 — CANON MEMORY */}
-      <section className="pub-section" aria-labelledby="cp-canon-title">
-        <SectionLabel num="08" text="CANON MEMORY" />
-        <h2 id="cp-canon-title" className="pub-h2">
-          The company learns once — and only proven outcomes write back.
-        </h2>
-        <div className="pub-cp-grid pub-cp-grid--2">
-          {canonEntries.map((c) => (
-            <article className="pub-panel pub-panel--gold" key={c.id}>
-              <div className="pub-panel-head">
-                <span className="pub-panel-label">{c.id}</span>
-                <Chip tone={c.kind === "pattern" ? "gold" : "warn"}>{c.kind}</Chip>
-              </div>
-              <h3 className="pub-panel-title">{c.title}</h3>
-              <div className="pub-panel-metrics">
-                <div className="pub-metric">
-                  <span className="pub-metric-label">CONFIDENCE</span>
-                  <Gauge value={c.confidence} max={1} digits={2} />
-                </div>
-                <div className="pub-metric">
-                  <span className="pub-metric-label">ORIGIN</span>
-                  <span className="pub-metric-val">{c.origin}</span>
-                </div>
-              </div>
-            </article>
-          ))}
-          {operatingPrimitives.map((p) => (
-            <article className="pub-panel" key={p.id}>
-              <div className="pub-panel-head">
-                <span className="pub-panel-label">{p.id}</span>
-                <Chip tone="cyan">primitive</Chip>
-              </div>
-              <h3 className="pub-panel-title">{p.name}</h3>
-              <div className="pub-panel-metrics">
-                <div className="pub-metric">
-                  <span className="pub-metric-label">CONFIDENCE</span>
-                  <Gauge value={p.confidence} max={1} digits={2} />
-                </div>
-                <div className="pub-metric">
-                  <span className="pub-metric-label">REUSABLE IN</span>
-                  <span className="pub-metric-val">{p.reusableIn.join(", ")}</span>
-                </div>
-              </div>
-              <p className="pub-panel-foot">{p.evidence}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      {/* 09 — CONTRADICTIONS & ESCALATIONS */}
+      {/* 09 — BAD DECISIONS, REFUSED */}
       <section className="pub-section" aria-labelledby="cp-con-title">
-        <SectionLabel num="09" text="BAD DECISIONS, REFUSED" />
+        <SectionLabel num="09" text="MEMORY · BAD DECISIONS, REFUSED" />
         <h2 id="cp-con-title" className="pub-h2">
           Disagreement blocks progress until it is resolved. Boundaries re-assert themselves.
         </h2>
@@ -648,27 +654,27 @@ export default function PublicHome() {
         </div>
       </section>
 
-      {/* 10 — THE OPERATING SYSTEM */}
-      <section className="pub-section" aria-labelledby="cp-engine-title">
+      {/* 10 — NINE DEPARTMENTS, ONE OPERATING SYSTEM */}
+      <section className="pub-section" aria-labelledby="cp-dept-title">
         <SectionLabel num="10" text="THE OPERATING SYSTEM" />
-        <h2 id="cp-engine-title" className="pub-h2">
-          Nine engines. One substrate. One company.
+        <h2 id="cp-dept-title" className="pub-h2">
+          Nine departments. One operating system.
         </h2>
-        <div className="pub-engine-map">
-          {ENGINES.map((e) => (
-            <article
-              className={`pub-panel pub-engine${e.id === "07" ? " pub-engine--hub" : ""}`}
-              key={e.id}
-            >
-              <div className="pub-panel-head">
-                <span className="pub-panel-label">E{e.id} · {e.name}</span>
-                <Chip tone={e.id === "07" ? "gold" : "dim"}>{e.layer}</Chip>
-              </div>
-              <p className="pub-engine-role">{e.role}</p>
-              {e.id === "07" && <p className="pub-engine-gate">{e.gate}</p>}
-            </article>
-          ))}
+        <div className="pub-dept-grid">
+          {DEPARTMENTS.map((d) => {
+            const e = ENGINE_MAP[d.e];
+            return (
+              <article className={`pub-panel pub-dept${d.core ? " pub-dept--core" : ""}`} key={d.e}>
+                <h3 className="pub-dept-name">{d.name}</h3>
+                <p className="pub-dept-role">{e.role}</p>
+              </article>
+            );
+          })}
         </div>
+        <p className="pub-note pub-dept-under">
+          One substrate runs them all — the same memory, the same boundaries, the same ledger underneath every
+          department.
+        </p>
       </section>
 
       {/* 11 — FINAL CTA */}
@@ -691,6 +697,27 @@ export default function PublicHome() {
           </a>
         </div>
       </section>
+    </div>
+  );
+}
+
+/* ── console row ───────────────────────────────────────────────────── */
+function ConsoleRow({
+  k,
+  v,
+  m,
+  tone = "ok",
+}: {
+  k: string;
+  v: string;
+  m?: string;
+  tone?: "ok" | "warn" | "info";
+}) {
+  return (
+    <div className="pub-console-row">
+      <span className="pub-console-k">{k}</span>
+      <span className={`pub-console-v pub-console-v--${tone}`}>{v}</span>
+      {m && <span className="pub-console-m">{m}</span>}
     </div>
   );
 }

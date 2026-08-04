@@ -1132,6 +1132,257 @@
   color: var(--pub-gold-bright);
 }
 
+/* ── live-company hero ─────────────────────────────────────────────── */
+.pub-hero--live {
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+  padding: clamp(56px, 9vw, 104px) 0;
+}
+.pub-hero--live::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(760px 460px at 50% -8%, rgba(212, 175, 55, 0.12), transparent 60%),
+    radial-gradient(620px 380px at 12% 92%, rgba(0, 194, 212, 0.05), transparent 60%),
+    radial-gradient(520px 340px at 88% 90%, rgba(232, 66, 127, 0.05), transparent 60%);
+}
+.pub-hero-inner {
+  position: relative;
+  z-index: 1;
+}
+.pub-hero--live .pub-sectlabel {
+  justify-content: center;
+}
+.pub-hero-title--live {
+  max-width: none;
+  margin-bottom: 34px;
+}
+.pub-hero-sub--live {
+  margin: 34px auto 28px;
+  max-width: 52ch;
+}
+.pub-hero--live .pub-hero-actions {
+  justify-content: center;
+}
+.pub-hero--live .pub-hero-fine {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ── live company terminal ─────────────────────────────────────────── */
+.pub-console {
+  max-width: 720px;
+  margin: 0 auto;
+  text-align: left;
+  border: 1px solid var(--pub-line);
+  border-radius: 14px;
+  overflow: hidden;
+  background: #06070b;
+  box-shadow: var(--pub-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+.pub-console-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--pub-line-dim);
+  background: linear-gradient(180deg, #0c0e14, #08090d);
+}
+.pub-console-dots {
+  display: flex;
+  gap: 5px;
+}
+.pub-console-dots i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+}
+.pub-console-dots i:nth-child(1) {
+  background: var(--pub-magenta);
+}
+.pub-console-dots i:nth-child(2) {
+  background: var(--pub-gold);
+}
+.pub-console-dots i:nth-child(3) {
+  background: var(--pub-cyan);
+}
+.pub-console-title {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--pub-ink-faint);
+}
+.pub-console-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--pub-gold);
+}
+.pub-console-body {
+  padding: 10px 20px 16px;
+  font-family: var(--font-mono);
+  display: grid;
+  gap: 4px;
+}
+.pub-console-row {
+  display: grid;
+  grid-template-columns: 190px 1fr auto;
+  gap: 14px;
+  align-items: baseline;
+  padding: 4px 0;
+}
+.pub-console-k {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--pub-ink-faint);
+}
+.pub-console-v {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.pub-console-v--ok {
+  color: var(--pub-gold);
+}
+.pub-console-v--warn {
+  color: var(--pub-magenta);
+}
+.pub-console-v--info {
+  color: var(--pub-cyan);
+}
+.pub-console-m {
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: var(--pub-ink-faint);
+  text-align: right;
+}
+.pub-console-hline {
+  border-top: 1px dashed rgba(212, 175, 55, 0.22);
+  margin: 6px 0;
+}
+.pub-console-cursor {
+  color: var(--pub-gold);
+  font-size: 13px;
+  animation: pub-blink 1.1s steps(2, start) infinite;
+}
+@keyframes pub-blink {
+  to {
+    visibility: hidden;
+  }
+}
+
+.pub-panel-right {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--pub-ink-faint);
+  text-transform: uppercase;
+}
+
+/* ── your company remembers ────────────────────────────────────────── */
+.pub-remember-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(28px, 4vw, 56px);
+  align-items: center;
+}
+.pub-remember-stanza {
+  font-size: clamp(30px, 4.6vw, 50px);
+  line-height: 1.14;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+  margin: 0 0 22px;
+}
+.pub-remember-dim {
+  color: var(--pub-ink-dim);
+  font-weight: 400;
+  font-size: 0.58em;
+  line-height: 1.4;
+}
+.pub-remember-sub {
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--pub-ink-dim);
+  max-width: 52ch;
+  margin: 0;
+}
+.pub-remember-entry {
+  border-top: 1px solid var(--pub-line-dim);
+  padding: 14px 0 4px;
+}
+.pub-remember-entry:first-child {
+  border-top: 0;
+}
+.pub-remember-entry-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.pub-remember-entry-id {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--pub-ink-faint);
+}
+.pub-remember-entry-text {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--pub-ink);
+  margin: 8px 0 4px;
+}
+.pub-remember-entry-meta {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--pub-ink-faint);
+  margin: 0 0 8px;
+}
+
+/* ── promises ──────────────────────────────────────────────────────── */
+.pub-promise-title {
+  font-size: 19px;
+  letter-spacing: 0.01em;
+  color: var(--pub-gold-bright);
+  line-height: 1.3;
+}
+
+/* ── nine departments ──────────────────────────────────────────────── */
+.pub-dept-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.pub-dept {
+  min-height: 118px;
+}
+.pub-dept-name {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0 0 6px;
+  letter-spacing: 0.01em;
+}
+.pub-dept-role {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--pub-ink-dim);
+}
+.pub-dept--core {
+  border-color: rgba(212, 175, 55, 0.5);
+  background: linear-gradient(160deg, var(--pub-glass-gold), var(--pub-glass) 60%);
+}
+.pub-dept-under {
+  margin-top: 18px;
+}
+
 /* ── responsive ────────────────────────────────────────────────────── */
 @media (max-width: 900px) {
   .pub-grid--3 {
@@ -1148,6 +1399,9 @@
     grid-template-columns: repeat(2, 1fr);
   }
   .pub-engine-map {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .pub-dept-grid {
     grid-template-columns: repeat(2, 1fr);
   }
   .pub-engine--hub {
@@ -1198,8 +1452,21 @@
   }
   .pub-cp-grid--2,
   .pub-cp-grid--3,
-  .pub-engine-map {
+  .pub-engine-map,
+  .pub-dept-grid {
     grid-template-columns: 1fr;
+  }
+  .pub-remember-grid {
+    grid-template-columns: 1fr;
+  }
+  .pub-console-row {
+    grid-template-columns: 1fr auto;
+    gap: 2px 12px;
+  }
+  .pub-console-m {
+    grid-column: 1 / -1;
+    text-align: left;
+    font-size: 10px;
   }
   .pub-hero-console {
     margin-top: 4px;
