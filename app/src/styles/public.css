@@ -987,6 +987,151 @@
   background: linear-gradient(160deg, rgba(212, 175, 55, 0.12), var(--pub-glass) 60%);
 }
 
+/* ── the company loop (ladder) ─────────────────────────────────────── */
+.pub-loop-panel {
+  padding: 22px 24px 20px;
+}
+.pub-loop {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  margin: 18px 0 4px;
+}
+.pub-loop::before {
+  content: "";
+  position: absolute;
+  left: 25px;
+  top: 8px;
+  bottom: 8px;
+  width: 1px;
+  background: linear-gradient(180deg, var(--pub-gold) 0%, rgba(212, 175, 55, 0.25) 60%, var(--pub-gold) 100%);
+  opacity: 0.5;
+}
+.pub-loop-step {
+  display: grid;
+  grid-template-columns: 52px 140px 1fr;
+  gap: 14px;
+  align-items: baseline;
+  padding: 9px 0;
+  position: relative;
+}
+.pub-loop-e {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  color: var(--pub-gold);
+  background: var(--pub-bg);
+  z-index: 1;
+}
+.pub-loop-name {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--pub-ink);
+}
+.pub-loop-role {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--pub-ink-dim);
+}
+.pub-loop-arrow {
+  grid-column: 1 / -1;
+  justify-self: center;
+  color: var(--pub-gold-dim);
+  font-size: 11px;
+  line-height: 1;
+  padding: 1px 0 3px;
+}
+
+.pub-loop-divider {
+  text-align: center;
+  color: var(--pub-line);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  margin: 10px 0 6px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.pub-loop-governed {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 26px;
+  justify-content: center;
+  padding: 4px 0 2px;
+}
+.pub-loop-governed-item {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: var(--pub-ink-dim);
+  text-transform: uppercase;
+}
+.pub-loop-governed-item--gold {
+  color: var(--pub-gold);
+}
+.pub-loop-sub {
+  margin: 14px 0 0;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--pub-ink-faint);
+  font-family: var(--font-mono);
+  letter-spacing: 0.03em;
+}
+
+/* ── today vs fable-5 ──────────────────────────────────────────────── */
+.pub-compare-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--pub-line);
+  border-radius: 14px;
+  background: linear-gradient(160deg, var(--pub-glass-strong), var(--pub-glass) 55%);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: var(--pub-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.pub-compare {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 460px;
+}
+.pub-compare th {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-align: left;
+  padding: 16px 24px 12px;
+  color: var(--pub-ink-faint);
+  border-bottom: 1px solid var(--pub-line-dim);
+}
+.pub-compare th:last-child {
+  color: var(--pub-gold);
+}
+.pub-compare td {
+  padding: 14px 24px;
+  font-size: 14.5px;
+  line-height: 1.45;
+  color: var(--pub-ink-dim);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.08);
+}
+.pub-compare tr:last-child td {
+  border-bottom: 0;
+}
+.pub-compare td.pub-compare-fable {
+  color: var(--pub-gold-bright);
+  font-weight: 600;
+}
+.pub-compare tr:hover td {
+  background: rgba(212, 175, 55, 0.04);
+}
+
+/* ── six promises (outcome cards) ──────────────────────────────────── */
+.pub-outcome-title {
+  font-size: 17px;
+  letter-spacing: 0.01em;
+  color: var(--pub-gold-bright);
+}
+
 /* ── responsive ────────────────────────────────────────────────────── */
 @media (max-width: 900px) {
   .pub-grid--3 {
@@ -1072,6 +1217,16 @@
   }
   .pub-queue-owner {
     display: none;
+  }
+  .pub-loop-step {
+    grid-template-columns: 52px 1fr;
+    gap: 2px 12px;
+  }
+  .pub-loop-role {
+    grid-column: 2;
+  }
+  .pub-loop-e {
+    grid-row: 1 / span 2;
   }
 }
 @media (prefers-reduced-motion: reduce) {

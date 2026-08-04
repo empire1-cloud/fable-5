@@ -30,7 +30,7 @@ export default function PublicShell({
             ◧
           </span>
           <span className="pub-brand-name">FABLE-5</span>
-          <span className="pub-brand-sub">GOVERNANCE FOR AI WORK</span>
+          <span className="pub-brand-sub">THE AI COMPANY OPERATING SYSTEM</span>
         </a>
 
         <button
@@ -77,7 +77,7 @@ export default function PublicShell({
             <div className="pub-foot-brand">
               <span className="pub-mark" aria-hidden="true">◧</span> FABLE-5
             </div>
-            <p className="pub-foot-strapline">Governance for AI work. Built by a founder, for founders.</p>
+            <p className="pub-foot-strapline">The operating system for AI-native companies. Built by a founder, for founders.</p>
           </div>
           <nav aria-label="Footer">
             <div className="pub-foot-head">NAVIGATE</div>
