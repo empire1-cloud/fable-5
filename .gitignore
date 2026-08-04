@@ -7,6 +7,7 @@ app.backup.*/
 # backend runtime & secrets
 backend/.env
 scale-v2/.env
+app/.env
 backend/dist/
 backend/node_modules/
 scale-v2/node_modules/
