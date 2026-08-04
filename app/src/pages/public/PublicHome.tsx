@@ -165,17 +165,17 @@ function tokenStatus(t: (typeof intentTokens)[number]): { label: string; tone: C
   return expired ? { label: "EXPIRED", tone: "dim" } : { label: "ACTIVE", tone: "gold" };
 }
 
-/* ── category copy — outcomes, not features ────────────────────────── */
-const STAGE_LABELS: Record<string, string> = {
-  "00": "Strategy",
-  "01": "Markets",
-  "02": "Products",
-  "03": "Operations",
-  "04": "Growth",
-  "05": "Finance",
-  "06": "Scale",
-};
-const LOOP_STAGES = ["00", "01", "02", "03", "04", "05", "06"];
+/* ── the company loop — the evidence lifecycle every piece of work runs ── */
+const LIFE_CYCLE: { id: string; label: string; role: string }[] = [
+  { id: "01", label: "PROPOSED", role: "The company proposes. Ideas enter as ranked claims." },
+  { id: "02", label: "AUTHORIZED", role: "The company decides. Gates are met; permission is granted." },
+  { id: "03", label: "EXECUTED", role: "The company acts. Work ships; the evidence trail opens." },
+  { id: "04", label: "RECEIPTED", role: "The company proves. Every action must produce a receipt." },
+  { id: "05", label: "VERIFIED", role: "The company checks. Nothing counts unless independently confirmed." },
+  { id: "06", label: "MEASURED", role: "The company measures. Results are read against typed gates." },
+  { id: "07", label: "LEARNED", role: "The company learns. What worked becomes a supported lesson." },
+  { id: "08", label: "CANONIZED", role: "The company remembers. Lessons become institutional memory." },
+];
 
 const DEPARTMENTS = [
   { e: "00", name: "Strategy", core: false },
@@ -301,27 +301,23 @@ export default function PublicHome() {
       <section className="pub-section" aria-labelledby="cp-loop-title">
         <SectionLabel num="01" text="THE COMPANY LOOP" />
         <h2 id="cp-loop-title" className="pub-h2">
-          One path runs the whole company — every department, in order, on the same rails.
+          One path runs the whole company — every decision, every action, through the same gates.
         </h2>
         <div className="pub-panel pub-panel--plain pub-loop-panel">
-          <PanelHead label="STRATEGY → MARKETS → PRODUCTS → OPERATIONS → GROWTH → FINANCE → SCALE" />
+          <PanelHead label="PROPOSED → AUTHORIZED → EXECUTED → RECEIPTED → VERIFIED → MEASURED → LEARNED → CANONIZED" />
           <div className="pub-loop">
-            {LOOP_STAGES.map((id) => {
-              const e = ENGINE_MAP[id];
-              const short = e.role.split(".")[0].split(";")[0] + ".";
-              return (
-                <div className="pub-loop-step" key={id}>
-                  <span className="pub-loop-e">E{id}</span>
-                  <span className="pub-loop-name">{STAGE_LABELS[id]}</span>
-                  <span className="pub-loop-role">{short}</span>
-                  {id !== "06" && (
-                    <span className="pub-loop-arrow" aria-hidden="true">
-                      ↓
-                    </span>
-                  )}
-                </div>
-              );
-            })}
+            {LIFE_CYCLE.map((s, i) => (
+              <div className="pub-loop-step" key={s.id}>
+                <span className="pub-loop-e">{s.id}</span>
+                <span className="pub-loop-name">{s.label}</span>
+                <span className="pub-loop-role">{s.role}</span>
+                {i < LIFE_CYCLE.length - 1 && (
+                  <span className="pub-loop-arrow" aria-hidden="true">
+                    ↓
+                  </span>
+                )}
+              </div>
+            ))}
           </div>
           <div className="pub-loop-divider" aria-hidden="true">
             ────────────────
