@@ -186,4 +186,15 @@ export const api = {
     revoke: (tokenId: string) => request<ApiIntentToken>("POST", `/api/intent-tokens/${tokenId}/revoke`),
     check: (body: Record<string, unknown>) => request<SpendVerdict>("POST", "/api/intent-tokens/check", body),
   },
+  founding: {
+    waitlist: {
+      create: (body: { email: string; name?: string; company?: string; claim?: string }) =>
+        request<{ id: string; email: string; status: string }>("POST", "/api/founding-access/waitlist", body),
+      list: () =>
+        request<{ id: string; email: string; name: string | null; company: string | null; claim: string | null; status: string }[]>(
+          "GET",
+          "/api/founding-access/waitlist"
+        ),
+    },
+  },
 };

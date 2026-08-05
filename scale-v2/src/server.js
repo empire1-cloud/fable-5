@@ -26,7 +26,9 @@ import {
   listIntentTokens,
   createIntentToken,
   revokeIntentToken,
-  loadIntentTokenForSpend
+  loadIntentTokenForSpend,
+  addToWaitlist,
+  listWaitlist
 } from "./repository.js";
 import { evaluateIntentToken } from "./domain/spend.js";
 import { EvidenceTransitionError } from "./domain/evidence.js";
@@ -274,6 +276,33 @@ async function spendVerdict(req, res, next) {
 
 app.post("/api/intent-tokens/check", requireAuth(), spendVerdict);
 app.post("/api/spend/verdict", requireAuth(), spendVerdict);
+
+/* ── founding-access waitlist (public submit, founder-only read) ────── */
+app.post("/api/founding-access/waitlist", async (req, res, next) => {
+  try {
+    const email = String(req.body?.email ?? "").trim();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: "REFUSED", reason: "A valid email is required" });
+    }
+    const entry = await addToWaitlist({
+      email,
+      name: String(req.body?.name ?? "").trim(),
+      company: String(req.body?.company ?? "").trim(),
+      claim: String(req.body?.claim ?? "").trim(),
+    });
+    res.status(201).json(entry);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/founding-access/waitlist", requireAuth(), async (req, res, next) => {
+  try {
+    res.json(await listWaitlist(req.actor));
+  } catch (error) {
+    next(error);
+  }
+});
 
 app.get("*splat", (_req, res) => {
   res.sendFile(path.join(publicDir, "index.html"));

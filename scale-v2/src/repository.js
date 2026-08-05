@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { withTenant } from "./db.js";
+import { pool, withTenant } from "./db.js";
 import { rankOpportunity } from "./domain/ranking.js";
 import { assertTransition } from "./domain/evidence.js";
 
@@ -530,6 +530,33 @@ export async function loadIntentTokenForSpend(actor, tokenId) {
       revoked: row.revoked_at != null
     };
   });
+}
+
+/** Public founding-access waitlist (pre-signup queue, no tenant context). */
+export async function addToWaitlist({ email, name, company, claim }) {
+  const result = await pool.query(
+    `INSERT INTO founding_waitlist (email, name, company, claim, status)
+     VALUES ($1, $2, $3, $4, 'pending')
+     ON CONFLICT (email) DO UPDATE SET
+       name = EXCLUDED.name,
+       company = EXCLUDED.company,
+       claim = EXCLUDED.claim,
+       status = CASE WHEN founding_waitlist.status = 'closed' THEN 'closed' ELSE founding_waitlist.status END,
+       refreshed_at = now()
+     RETURNING id, email, name, company, claim, status, created_at`,
+    [String(email).trim().toLowerCase(), name || null, company || null, claim || null]
+  );
+  return result.rows[0];
+}
+
+/** Founder-only view of the waitlist queue. */
+export async function listWaitlist(actor) {
+  if (actor.role !== "OWNER") throw Object.assign(new Error("Founder access only"), { status: 403 });
+  const result = await pool.query(
+    `SELECT id, email, name, company, claim, status, created_at, refreshed_at
+       FROM founding_waitlist ORDER BY created_at DESC`
+  );
+  return result.rows;
 }
 
 export async function dashboard(actor) {

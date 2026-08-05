@@ -466,6 +466,66 @@
   gap: 14px;
   padding-top: 8px;
 }
+
+/* ── founding-access waitlist ───────────────────────────────────────── */
+.pub-form {
+  display: grid;
+  gap: 16px;
+  margin: 20px 0 4px;
+}
+.pub-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.pub-field {
+  display: grid;
+  gap: 7px;
+}
+.pub-field-label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  color: var(--pub-ink-faint);
+}
+.pub-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: #06070b;
+  border: 1px solid var(--pub-line-dim);
+  color: var(--pub-ink);
+  font-family: inherit;
+  font-size: 14px;
+  padding: 11px 12px;
+  border-radius: 0;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.pub-input::placeholder {
+  color: var(--pub-ink-faint);
+}
+.pub-input:focus {
+  border-color: rgba(212, 175, 55, 0.55);
+  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.25);
+}
+.pub-textarea {
+  resize: vertical;
+  min-height: 74px;
+  line-height: 1.55;
+}
+.pub-waitlist-hint {
+  font-size: 12px;
+  color: var(--pub-ink-faint);
+  margin: 2px 0 0;
+}
+.pub-waitlist-error {
+  font-size: 13px;
+  color: var(--pub-magenta);
+  margin: 0;
+}
+.pub-waitlist-done {
+  margin: 20px 0 4px;
+}
 .pub-final {
   padding: clamp(56px, 9vw, 96px) 0;
   text-align: left;
@@ -1408,6 +1468,9 @@
   .pub-foot-grid {
     grid-template-columns: 1fr;
     gap: 24px;
+  }
+  .pub-form-row {
+    grid-template-columns: 1fr;
   }
   .pub-hero--cp {
     grid-template-columns: 1fr;
