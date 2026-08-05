@@ -127,37 +127,122 @@ export async function createOpportunity(actor, payload) {
 }
 
 export async function authorizeOpportunity(actor, opportunityId, reason) {
+  try {
+    return await withTenant(actor.tenantId, async (client) => {
+      const result = await client.query(
+        `SELECT o.*, e.state, e.grade,
+                (SELECT count(*)::int FROM evidence_receipts r WHERE r.evidence_id=e.id) AS receipt_count
+           FROM opportunities o
+           JOIN evidence_records e ON e.id=o.evidence_id
+          WHERE o.id=$1
+          FOR UPDATE`,
+        [opportunityId]
+      );
+      const row = result.rows[0];
+      if (!row) throw notFound("Opportunity not found");
+      if (!["A", "B"].includes(row.grade) || Number(row.receipt_count) < 1) {
+        throw Object.assign(
+          conflict("Engine 00 gate refused: evidence grade A/B and at least one receipt are required."),
+          { evidenceId: row.evidence_id, engineId: "00" }
+        );
+      }
+
+      assertTransition(row.state, "AUTHORIZED");
+      const decisionId = randomUUID();
+      await client.query(
+        `INSERT INTO decisions (id, tenant_id, opportunity_id, verdict, reason, decided_by)
+         VALUES ($1,$2,$3,'AUTHORIZED',$4,$5)`,
+        [decisionId, actor.tenantId, opportunityId, reason, actor.userId]
+      );
+      await client.query(`UPDATE opportunities SET status='AUTHORIZED', updated_at=now() WHERE id=$1`, [opportunityId]);
+      await client.query(`UPDATE evidence_records SET state='AUTHORIZED', updated_at=now() WHERE id=$1`, [row.evidence_id]);
+      await client.query(
+        `INSERT INTO evidence_events (id, tenant_id, evidence_id, state_from, state_to, reason, actor_id)
+         VALUES ($1,$2,$3,$4,'AUTHORIZED',$5,$6)`,
+        [randomUUID(), actor.tenantId, row.evidence_id, row.state, reason, actor.userId]
+      );
+      return { decisionId, opportunityId, evidenceId: row.evidence_id, state: "AUTHORIZED" };
+    });
+  } catch (error) {
+    // A refused gate is real intelligence, not noise — it is persisted as an
+    // escalation in its own transaction (the authorize transaction above
+    // already rolled back) so the refusal survives on the record instead of
+    // vanishing with the thrown error. The authorize action itself still
+    // fails — raising an escalation never turns a refusal into a success.
+    if (error?.status === 409 && error?.evidenceId) {
+      await raiseEscalation(actor, {
+        engineId: error.engineId ?? "00",
+        severity: "MEDIUM",
+        reason: error.message,
+        evidenceId: error.evidenceId
+      }).catch((writeError) => {
+        console.error(JSON.stringify({ level: "error", event: "escalation_write_failed", message: writeError.message }));
+      });
+    }
+    throw error;
+  }
+}
+
+export async function raiseEscalation(actor, { engineId, severity, reason, evidenceId }) {
+  return withTenant(actor.tenantId, async (client) => {
+    const id = randomUUID();
+    await client.query(
+      `INSERT INTO escalations (id, tenant_id, engine_id, severity, reason, evidence_id)
+       VALUES ($1,$2,$3,$4,$5,$6)`,
+      [id, actor.tenantId, engineId, severity, reason, evidenceId ?? null]
+    );
+    return { id };
+  });
+}
+
+export async function listEscalations(actor) {
   return withTenant(actor.tenantId, async (client) => {
     const result = await client.query(
-      `SELECT o.*, e.state, e.grade,
-              (SELECT count(*)::int FROM evidence_receipts r WHERE r.evidence_id=e.id) AS receipt_count
-         FROM opportunities o
-         JOIN evidence_records e ON e.id=o.evidence_id
-        WHERE o.id=$1
-        FOR UPDATE`,
-      [opportunityId]
+      `SELECT id, engine_id, severity, reason, evidence_id, resolved_at, resolution, created_at
+         FROM escalations
+        ORDER BY (resolved_at IS NULL) DESC, created_at DESC`
+    );
+    return result.rows;
+  });
+}
+
+export async function resolveEscalation(actor, escalationId, resolution) {
+  return withTenant(actor.tenantId, async (client) => {
+    const result = await client.query(
+      `UPDATE escalations SET resolved_at = now(), resolution = $1
+        WHERE id = $2 AND resolved_at IS NULL
+      RETURNING id, engine_id, severity, reason, evidence_id, resolved_at, resolution, created_at`,
+      [resolution, escalationId]
     );
     const row = result.rows[0];
-    if (!row) throw Object.assign(new Error("Opportunity not found"), { status: 404 });
-    if (!["A", "B"].includes(row.grade) || Number(row.receipt_count) < 1) {
-      throw Object.assign(new Error("Engine 00 gate refused: evidence grade A/B and at least one receipt are required."), { status: 409 });
-    }
+    if (!row) throw notFound("Escalation not found or already resolved");
+    return row;
+  });
+}
 
-    assertTransition(row.state, "AUTHORIZED");
-    const decisionId = randomUUID();
-    await client.query(
-      `INSERT INTO decisions (id, tenant_id, opportunity_id, verdict, reason, decided_by)
-       VALUES ($1,$2,$3,'AUTHORIZED',$4,$5)`,
-      [decisionId, actor.tenantId, opportunityId, reason, actor.userId]
+export async function listDecisions(actor) {
+  return withTenant(actor.tenantId, async (client) => {
+    const result = await client.query(
+      `SELECT d.id, d.opportunity_id, d.verdict, d.reason, d.decided_by, d.created_at,
+              o.title AS opportunity_title, o.ranking_score, o.ranking_verdict, o.ranking_factors,
+              u.email AS decided_by_email
+         FROM decisions d
+         JOIN opportunities o ON o.id = d.opportunity_id
+         LEFT JOIN users u ON u.id = d.decided_by
+        ORDER BY d.created_at DESC`
     );
-    await client.query(`UPDATE opportunities SET status='AUTHORIZED', updated_at=now() WHERE id=$1`, [opportunityId]);
-    await client.query(`UPDATE evidence_records SET state='AUTHORIZED', updated_at=now() WHERE id=$1`, [row.evidence_id]);
-    await client.query(
-      `INSERT INTO evidence_events (id, tenant_id, evidence_id, state_from, state_to, reason, actor_id)
-       VALUES ($1,$2,$3,$4,'AUTHORIZED',$5,$6)`,
-      [randomUUID(), actor.tenantId, row.evidence_id, row.state, reason, actor.userId]
-    );
-    return { decisionId, opportunityId, evidenceId: row.evidence_id, state: "AUTHORIZED" };
+    return result.rows.map((r) => ({
+      id: r.id,
+      opportunity_id: r.opportunity_id,
+      opportunity_title: r.opportunity_title,
+      verdict: r.verdict,
+      reason: r.reason,
+      ranking_score: r.ranking_score === null ? null : Number(r.ranking_score),
+      ranking_verdict: r.ranking_verdict,
+      ranking_factors: r.ranking_factors,
+      decided_by_email: r.decided_by_email,
+      created_at: r.created_at
+    }));
   });
 }
 

@@ -28,7 +28,10 @@ import {
   revokeIntentToken,
   loadIntentTokenForSpend,
   addToWaitlist,
-  listWaitlist
+  listWaitlist,
+  listDecisions,
+  listEscalations,
+  resolveEscalation
 } from "./repository.js";
 import { evaluateIntentToken } from "./domain/spend.js";
 import { EvidenceTransitionError } from "./domain/evidence.js";
@@ -136,6 +139,32 @@ app.get("/api/opportunities", requireAuth(), async (req, res, next) => {
 app.post("/api/opportunities/:id/authorize", requireAuth(), async (req, res, next) => {
   try {
     res.json(await authorizeOpportunity(req.actor, req.params.id, req.body?.reason ?? "Authorized through Engine 00"));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/decisions", requireAuth(), async (req, res, next) => {
+  try {
+    res.json(await listDecisions(req.actor));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/escalations", requireAuth(), async (req, res, next) => {
+  try {
+    res.json(await listEscalations(req.actor));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/escalations/:id/resolve", requireAuth(), async (req, res, next) => {
+  try {
+    const resolution = String(req.body?.resolution ?? "").trim();
+    if (!resolution) return res.status(400).json({ error: "resolution is required" });
+    res.json(await resolveEscalation(req.actor, req.params.id, resolution));
   } catch (error) {
     next(error);
   }

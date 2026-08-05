@@ -243,6 +243,99 @@ test("opportunities: list is ranked by the server", async () => {
   assert.ok(Array.isArray(listed.body));
 });
 
+test("decisions: authorizing a well-evidenced opportunity creates a real, listable decision", async () => {
+  const token = await loginToken();
+  const title = `Integration opportunity ${Date.now()} ${randomUUID().slice(0, 8)}`;
+
+  const created = await req("POST", "/api/opportunities", {
+    token,
+    body: {
+      title,
+      claim: title,
+      evidenceGrade: "A",
+      evidenceStrength: 90,
+      demandSignal: 80,
+      strategicFit: 80,
+      executionReadiness: 80
+    }
+  });
+  assert.equal(created.status, 201);
+  const { opportunityId, evidenceId } = created.body;
+
+  // The gate also requires at least one attached receipt.
+  const receipt = await req("POST", `/api/evidence/${evidenceId}/receipts`, {
+    token,
+    body: { receipt_type: "log", description: "founder-reviewed evidence pack" }
+  });
+  assert.equal(receipt.status, 201);
+
+  const authorized = await req("POST", `/api/opportunities/${opportunityId}/authorize`, {
+    token,
+    body: { reason: "strong evidence, integration test" }
+  });
+  assert.equal(authorized.status, 200);
+  assert.equal(authorized.body.state, "AUTHORIZED");
+
+  const listed = await req("GET", "/api/decisions", { token });
+  assert.equal(listed.status, 200);
+  const decision = listed.body.find((d) => d.opportunity_id === opportunityId);
+  assert.ok(decision, "the real decision row is returned, not a static demo record");
+  assert.equal(decision.verdict, "AUTHORIZED");
+  assert.equal(decision.opportunity_title, title);
+  assert.ok(typeof decision.ranking_score === "number");
+});
+
+test("escalations: a refused Engine 00 gate is persisted, listable, and resolvable", async () => {
+  const token = await loginToken();
+  const title = `Weak opportunity ${Date.now()} ${randomUUID().slice(0, 8)}`;
+
+  // Default grade is C and no receipt is attached — the authorize gate must refuse.
+  const created = await req("POST", "/api/opportunities", { token, body: { title, claim: title } });
+  assert.equal(created.status, 201);
+  const { opportunityId, evidenceId } = created.body;
+
+  const refused = await req("POST", `/api/opportunities/${opportunityId}/authorize`, {
+    token,
+    body: { reason: "should be refused" }
+  });
+  assert.equal(refused.status, 409, "the authorize action itself is still refused");
+
+  const listed = await req("GET", "/api/escalations", { token });
+  assert.equal(listed.status, 200);
+  const escalation = listed.body.find((e) => e.evidence_id === evidenceId);
+  assert.ok(escalation, "the refusal is retained as a real escalation, not silently dropped");
+  assert.equal(escalation.engine_id, "00");
+  assert.equal(escalation.severity, "MEDIUM");
+  assert.equal(escalation.resolved_at, null);
+  assert.match(escalation.reason, /Engine 00 gate refused/);
+
+  const missingResolution = await req("POST", `/api/escalations/${escalation.id}/resolve`, { token, body: {} });
+  assert.equal(missingResolution.status, 400);
+
+  const resolved = await req("POST", `/api/escalations/${escalation.id}/resolve`, {
+    token,
+    body: { resolution: "re-graded evidence to A and attached a receipt" }
+  });
+  assert.equal(resolved.status, 200);
+  assert.ok(resolved.body.resolved_at);
+  assert.equal(resolved.body.resolution, "re-graded evidence to A and attached a receipt");
+
+  const resolveAgain = await req("POST", `/api/escalations/${escalation.id}/resolve`, {
+    token,
+    body: { resolution: "second attempt" }
+  });
+  assert.equal(resolveAgain.status, 404, "an already-resolved escalation cannot be resolved twice");
+});
+
+test("escalations: another tenant's escalation is invisible (404, not leaked)", async () => {
+  const token = await loginToken();
+  const missing = await req("POST", `/api/escalations/${randomUUID()}/resolve`, {
+    token,
+    body: { resolution: "n/a" }
+  });
+  assert.equal(missing.status, 404);
+});
+
 async function loginToken() {
   const login = await req("POST", "/api/auth/login", { body: { email: EMAIL, password: PASSWORD } });
   assert.equal(login.status, 200);

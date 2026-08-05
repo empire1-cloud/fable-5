@@ -150,6 +150,28 @@ export interface OpportunityRanking {
   confidence: number;
   factors: Record<string, number>;
 }
+export interface ApiDecision {
+  id: string;
+  opportunity_id: string;
+  opportunity_title: string;
+  verdict: string;
+  reason: string;
+  ranking_score: number | null;
+  ranking_verdict: string | null;
+  ranking_factors: Record<string, number> | null;
+  decided_by_email: string | null;
+  created_at: string;
+}
+export interface ApiEscalation {
+  id: string;
+  engine_id: string;
+  severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  reason: string;
+  evidence_id: string | null;
+  resolved_at: string | null;
+  resolution: string | null;
+  created_at: string;
+}
 
 export const api = {
   health: () => request<HealthState>("GET", "/api/health"),
@@ -185,6 +207,14 @@ export const api = {
     issue: (body: Record<string, unknown>) => request<ApiIntentToken>("POST", "/api/intent-tokens", body),
     revoke: (tokenId: string) => request<ApiIntentToken>("POST", `/api/intent-tokens/${tokenId}/revoke`),
     check: (body: Record<string, unknown>) => request<SpendVerdict>("POST", "/api/intent-tokens/check", body),
+  },
+  decisions: {
+    list: () => request<ApiDecision[]>("GET", "/api/decisions"),
+  },
+  escalations: {
+    list: () => request<ApiEscalation[]>("GET", "/api/escalations"),
+    resolve: (id: string, resolution: string) =>
+      request<ApiEscalation>("POST", `/api/escalations/${id}/resolve`, { resolution }),
   },
   founding: {
     waitlist: {
