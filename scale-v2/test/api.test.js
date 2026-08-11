@@ -381,6 +381,105 @@ test("genomes and market nodes start empty — a new org has not proven one", as
   assert.ok(Array.isArray(nodes.body));
 });
 
+test("genome sections: proven is DERIVED from evidence state, never asserted", async () => {
+  const token = await loginToken();
+  const suffix = randomUUID().slice(0, 8);
+
+  const created = await req("POST", "/api/genomes", {
+    token,
+    body: { code: `G-TEST-${suffix}`, name: `Test genome ${suffix}`, thesis: "under test" }
+  });
+  assert.equal(created.status, 201);
+  const genomeId = created.body.id;
+
+  // Section with no evidence at all.
+  const bare = await req("POST", `/api/genomes/${genomeId}/sections`, {
+    token,
+    body: { section_key: "problem", section_group: "PROBLEM", label: "problem", value: "stated, unproven" }
+  });
+  assert.equal(bare.status, 201);
+
+  // Section linked to evidence that is only PROPOSED — attached, NOT proven.
+  const ev = await req("POST", "/api/evidence", { token, body: { claim: `Pricing claim ${suffix}` } });
+  assert.equal(ev.status, 201);
+  const evidenceId = ev.body.id;
+  const attached = await req("POST", `/api/genomes/${genomeId}/sections`, {
+    token,
+    body: { section_key: "pricing", section_group: "OFFER", label: "pricing", value: "€89/mo", evidence_id: evidenceId }
+  });
+  assert.equal(attached.status, 201);
+
+  let detail = await req("GET", `/api/genomes/${genomeId}`, { token });
+  assert.equal(detail.status, 200);
+  assert.equal(detail.body.coverage.total, 2);
+  assert.equal(detail.body.coverage.proven, 0, "attaching PROPOSED evidence proves nothing");
+  const pricing = detail.body.sections.find((s) => s.key === "pricing");
+  assert.equal(pricing.evidenceState, "PROPOSED");
+  assert.equal(pricing.proven, false, "a claim awaiting the gates is not proof");
+  assert.equal(detail.body.maturityGate.allowed, false);
+
+  // Walk the real gates to VERIFIED; only then may the section read proven.
+  await req("POST", `/api/evidence/${evidenceId}/transition`, { token, body: { to: "AUTHORIZED", reason: "gated" } });
+  await req("POST", `/api/evidence/${evidenceId}/transition`, { token, body: { to: "EXECUTED", reason: "ran" } });
+  const receipt = await req("POST", `/api/evidence/${evidenceId}/receipts`, {
+    token,
+    body: { receipt_type: "log", description: "pricing test output" }
+  });
+  await req("POST", `/api/evidence/${evidenceId}/transition`, { token, body: { to: "RECEIPTED", reason: "proof attached" } });
+  await req("POST", `/api/evidence/${evidenceId}/verifications`, {
+    token,
+    body: { receipt_id: receipt.body.receipts[0].id, method: "independent re-run", independent: true, reproduced: true }
+  });
+  await req("POST", `/api/evidence/${evidenceId}/transition`, { token, body: { to: "VERIFIED", reason: "reproduced" } });
+
+  detail = await req("GET", `/api/genomes/${genomeId}`, { token });
+  assert.equal(detail.body.coverage.proven, 1, "proven count follows the evidence machine");
+  assert.equal(detail.body.sections.find((s) => s.key === "pricing").proven, true);
+
+  // The bare section still blocks promotion, and the reason is computed.
+  assert.equal(detail.body.maturityGate.allowed, false);
+  assert.match(detail.body.maturityGate.reason, /1 of 2 sections lack verified evidence/);
+  const missing = detail.body.missingForNextStage.find((m) => m.label === "problem");
+  assert.equal(missing.reason, "no evidence attached");
+});
+
+test("genome maturity gate opens only when every section is verified", async () => {
+  const token = await loginToken();
+  const suffix = randomUUID().slice(0, 8);
+  const created = await req("POST", "/api/genomes", {
+    token,
+    body: { code: `G-GATE-${suffix}`, name: `Gate genome ${suffix}` }
+  });
+  const genomeId = created.body.id;
+
+  // A genome with no sections has described nothing — it cannot be ready.
+  let detail = await req("GET", `/api/genomes/${genomeId}`, { token });
+  assert.equal(detail.body.replicationReady, false);
+  assert.match(detail.body.maturityGate.reason, /no sections/i);
+
+  const ev = await req("POST", "/api/evidence", { token, body: { claim: `Only claim ${suffix}` } });
+  const evidenceId = ev.body.id;
+  await req("POST", `/api/genomes/${genomeId}/sections`, {
+    token,
+    body: { section_key: "only", section_group: "G", label: "only", value: "v", evidence_id: evidenceId }
+  });
+
+  await req("POST", `/api/evidence/${evidenceId}/transition`, { token, body: { to: "AUTHORIZED", reason: "g" } });
+  await req("POST", `/api/evidence/${evidenceId}/transition`, { token, body: { to: "EXECUTED", reason: "g" } });
+  const r = await req("POST", `/api/evidence/${evidenceId}/receipts`, { token, body: { receipt_type: "log", description: "d" } });
+  await req("POST", `/api/evidence/${evidenceId}/transition`, { token, body: { to: "RECEIPTED", reason: "g" } });
+  await req("POST", `/api/evidence/${evidenceId}/verifications`, {
+    token,
+    body: { receipt_id: r.body.receipts[0].id, method: "independent", independent: true, reproduced: true }
+  });
+  await req("POST", `/api/evidence/${evidenceId}/transition`, { token, body: { to: "VERIFIED", reason: "g" } });
+
+  detail = await req("GET", `/api/genomes/${genomeId}`, { token });
+  assert.equal(detail.body.replicationReady, true);
+  assert.equal(detail.body.maturityGate.allowed, true);
+  assert.equal(detail.body.missingForNextStage.length, 0);
+});
+
 test("genomes/nodes/pools require authentication", async () => {
   for (const path of ["/api/genomes", "/api/market-nodes", "/api/resource-pools"]) {
     const { status } = await req("GET", path);

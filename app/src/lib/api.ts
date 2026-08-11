@@ -173,10 +173,37 @@ export interface ApiDashboard {
   resourcePressure: { resourceType: string; ratio: number } | null;
 }
 
+export type GenomeMaturityLevel = 'Draft' | 'Tested' | 'Verified' | 'Replication-Ready';
+
 export interface ApiGenome {
   id: string; code: string; name: string; thesis: string;
-  maturity: 'Draft' | 'Tested' | 'Verified' | 'Replication-Ready';
-  economic_gate_type: string; node_count: number; created_at: string;
+  maturity: GenomeMaturityLevel;
+  economic_gate_type: string; node_count: number;
+  section_count: number;
+  /** computed from the evidence machine, never stored */
+  proven_count: number;
+  created_at: string;
+}
+
+export interface ApiGenomeSection {
+  id: string; key: string; group: string; label: string; value: string;
+  evidenceId: string | null;
+  /** null when nothing is attached at all */
+  evidenceState: string | null;
+  evidenceClaim: string | null;
+  /** true only when evidenceState has reached VERIFIED or later */
+  proven: boolean;
+}
+
+export interface ApiGenomeDetail extends Omit<ApiGenome, 'node_count' | 'section_count' | 'proven_count'> {
+  sections: ApiGenomeSection[];
+  coverage: { proven: number; total: number };
+  playbooks: { id: string; title: string; body: string; policy_version: string; approved_by: string; created_at: string }[];
+  nodes: { id: string; code: string; geography: string; status: string; evidence_state: string; autonomy_level: string }[];
+  missingForNextStage: { label: string; reason: string }[];
+  nextMaturity: GenomeMaturityLevel | null;
+  replicationReady: boolean;
+  maturityGate: { allowed: boolean; reason: string };
 }
 export interface ApiMarketNode {
   id: string; code: string; genome_id: string | null; genome_code: string | null;
@@ -249,6 +276,7 @@ export const api = {
   dashboard: () => request<ApiDashboard>("GET", "/api/dashboard"),
   genomes: {
     list: () => request<ApiGenome[]>("GET", "/api/genomes"),
+    get: (id: string) => request<ApiGenomeDetail>("GET", `/api/genomes/${id}`),
   },
   marketNodes: {
     list: () => request<ApiMarketNode[]>("GET", "/api/market-nodes"),

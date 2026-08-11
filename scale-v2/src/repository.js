@@ -648,11 +648,178 @@ export async function listGenomes(actor) {
   return withTenant(actor.tenantId, async (client) => {
     const result = await client.query(
       `SELECT g.id, g.code, g.name, g.thesis, g.maturity, g.economic_gate_type, g.created_at,
-              (SELECT count(*)::int FROM market_nodes n WHERE n.genome_id = g.id) AS node_count
+              (SELECT count(*)::int FROM market_nodes n WHERE n.genome_id = g.id) AS node_count,
+              (SELECT count(*)::int FROM genome_sections s WHERE s.genome_id = g.id) AS section_count,
+              -- proven is computed from the evidence machine, never stored
+              (SELECT count(*)::int
+                 FROM genome_sections s
+                 JOIN evidence_records e ON e.id = s.evidence_id
+                WHERE s.genome_id = g.id
+                  AND e.state IN ('VERIFIED','MEASURED','LEARNED','CANONIZED')) AS proven_count
          FROM company_genomes g
         ORDER BY g.code`
     );
     return result.rows;
+  });
+}
+
+/** The evidence states that count as actually proven. Attaching evidence is a
+ *  claim; only these states are proof. Kept here so the definition lives in
+ *  one place and matches domain/evidence.js. */
+const PROVEN_STATES = ["VERIFIED", "MEASURED", "LEARNED", "CANONIZED"];
+
+const MATURITY_ORDER = ["Draft", "Tested", "Verified", "Replication-Ready"];
+
+export async function createGenome(actor, payload) {
+  const code = String(payload?.code ?? "").trim();
+  const name = String(payload?.name ?? "").trim();
+  if (!code || !name) throw badRequest("code and name are required");
+  return withTenant(actor.tenantId, async (client) => {
+    const result = await client.query(
+      `INSERT INTO company_genomes (tenant_id, code, name, thesis, maturity, economic_gate_type)
+       VALUES ($1,$2,$3,$4,$5,$6)
+       ON CONFLICT (tenant_id, code) DO NOTHING
+       RETURNING id, code, name, thesis, maturity, economic_gate_type, created_at`,
+      [
+        actor.tenantId,
+        code,
+        name,
+        String(payload.thesis ?? ""),
+        // A new genome starts at Draft. Maturity is earned through the
+        // evidence gate, not chosen at creation time.
+        "Draft",
+        String(payload.economic_gate_type ?? "")
+      ]
+    );
+    if (!result.rows[0]) throw conflict(`A genome with code ${code} already exists.`);
+    return result.rows[0];
+  });
+}
+
+export async function addGenomeSection(actor, genomeId, payload) {
+  const key = String(payload?.section_key ?? "").trim();
+  const label = String(payload?.label ?? "").trim();
+  if (!key || !label) throw badRequest("section_key and label are required");
+  return withTenant(actor.tenantId, async (client) => {
+    const genome = await client.query(`SELECT id FROM company_genomes WHERE id=$1`, [genomeId]);
+    if (!genome.rows[0]) throw notFound("Genome not found");
+
+    // Evidence must belong to this tenant; RLS already scopes the lookup, so a
+    // foreign record simply is not found rather than being silently accepted.
+    if (payload.evidence_id) {
+      const ev = await client.query(`SELECT id FROM evidence_records WHERE id=$1`, [payload.evidence_id]);
+      if (!ev.rows[0]) throw notFound("Evidence record not found");
+    }
+
+    const result = await client.query(
+      `INSERT INTO genome_sections
+         (tenant_id, genome_id, section_key, section_group, label, value, evidence_id, sort_order)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+       ON CONFLICT (genome_id, section_key) DO UPDATE
+         SET section_group=EXCLUDED.section_group, label=EXCLUDED.label, value=EXCLUDED.value,
+             evidence_id=EXCLUDED.evidence_id, updated_at=now()
+       RETURNING id, section_key, section_group, label, value, evidence_id, sort_order`,
+      [
+        actor.tenantId,
+        genomeId,
+        key,
+        String(payload.section_group ?? ""),
+        label,
+        String(payload.value ?? ""),
+        payload.evidence_id ?? null,
+        Number.isFinite(Number(payload.sort_order)) ? Number(payload.sort_order) : 0
+      ]
+    );
+    return result.rows[0];
+  });
+}
+
+export async function getGenome(actor, genomeId) {
+  return withTenant(actor.tenantId, async (client) => {
+    const genome = await client.query(
+      `SELECT id, code, name, thesis, maturity, economic_gate_type, created_at
+         FROM company_genomes WHERE id = $1`,
+      [genomeId]
+    );
+    if (!genome.rows[0]) throw notFound("Genome not found");
+
+    const [sections, playbooks, nodes] = await Promise.all([
+      client.query(
+        `SELECT s.id, s.section_key, s.section_group, s.label, s.value, s.sort_order,
+                s.evidence_id, e.state AS evidence_state, e.claim AS evidence_claim
+           FROM genome_sections s
+           LEFT JOIN evidence_records e ON e.id = s.evidence_id
+          WHERE s.genome_id = $1
+          ORDER BY s.sort_order, s.section_key`,
+        [genomeId]
+      ),
+      client.query(
+        `SELECT c.id, c.title, c.body, c.policy_version, c.approved_by, c.created_at
+           FROM genome_playbooks p
+           JOIN canon_entries c ON c.id = p.canon_entry_id
+          WHERE p.genome_id = $1
+          ORDER BY c.created_at`,
+        [genomeId]
+      ),
+      client.query(
+        `SELECT id, code, geography, status, evidence_state, autonomy_level
+           FROM market_nodes WHERE genome_id = $1 ORDER BY code`,
+        [genomeId]
+      )
+    ]);
+
+    // Provenness is DERIVED, never stored. A section linked to a PROPOSED
+    // record is a claim awaiting the gates — not a proof.
+    const mapped = sections.rows.map((s) => ({
+      id: s.id,
+      key: s.section_key,
+      group: s.section_group,
+      label: s.label,
+      value: s.value,
+      evidenceId: s.evidence_id,
+      evidenceState: s.evidence_state,
+      evidenceClaim: s.evidence_claim,
+      proven: Boolean(s.evidence_state && PROVEN_STATES.includes(s.evidence_state))
+    }));
+
+    const provenCount = mapped.filter((s) => s.proven).length;
+    // What is missing is computed from the ledger, not typed into a list.
+    const missingForNextStage = mapped
+      .filter((s) => !s.proven)
+      .map((s) => ({
+        label: s.label,
+        reason: s.evidenceState
+          ? `evidence is ${s.evidenceState} — not yet VERIFIED`
+          : "no evidence attached"
+      }));
+
+    const row = genome.rows[0];
+    const currentIndex = MATURITY_ORDER.indexOf(row.maturity);
+    const nextMaturity = currentIndex >= 0 && currentIndex < MATURITY_ORDER.length - 1
+      ? MATURITY_ORDER[currentIndex + 1]
+      : null;
+
+    return {
+      ...row,
+      sections: mapped,
+      coverage: { proven: provenCount, total: mapped.length },
+      playbooks: playbooks.rows,
+      nodes: nodes.rows,
+      missingForNextStage,
+      nextMaturity,
+      // The same shape as every other gate in this system: a verdict with the
+      // reason attached, computed server-side.
+      replicationReady: mapped.length > 0 && provenCount === mapped.length,
+      maturityGate:
+        mapped.length === 0
+          ? { allowed: false, reason: "Genome has no sections — nothing has been described yet." }
+          : provenCount === mapped.length
+            ? { allowed: true, reason: `All ${mapped.length} sections are backed by VERIFIED-or-later evidence.` }
+            : {
+                allowed: false,
+                reason: `${mapped.length - provenCount} of ${mapped.length} sections lack verified evidence.`
+              }
+    };
   });
 }
 

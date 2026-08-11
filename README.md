@@ -30,6 +30,15 @@ does from anywhere else. Omniscience, not permission.
 
 ![GOD MODE — every engine, every record, one read](docs/screenshots/05-god-mode.png)
 
+**The company genome** — where the doctrine bites hardest. A section is not marked proven by a
+flag someone set; it is proven only when the evidence attached to it has actually reached
+VERIFIED in the state machine. Attaching evidence proves nothing — a section linked to a
+`PROPOSED` record reads *"not proven"*. The coverage meter, the list of what is still missing,
+and the replication-ready gate are all computed from that, so a genome that cannot be promoted
+says exactly why.
+
+![Company Genome — provenness derived from the evidence state machine, replication gate locked with a computed reason](docs/screenshots/06-genome.png)
+
 **The decision ledger** — every row is a real `decisions` row written by Engine 00 the moment
 an opportunity is authorized. The ranking score and factors are the server's own arithmetic,
 not narrated after the fact.

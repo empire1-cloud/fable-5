@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ENGINE_REGISTRY, getEngine } from "./engine-registry.js";
 import { requireAuth, login, sessionExpiry } from "./auth.js";
-import { healthcheck } from "./db.js";
+import { healthcheck, pool } from "./db.js";
 import {
   createOpportunity,
   authorizeOpportunity,
@@ -33,6 +33,9 @@ import {
   listEscalations,
   resolveEscalation,
   listGenomes,
+  getGenome,
+  createGenome,
+  addGenomeSection,
   listMarketNodes,
   listResourcePools
 } from "./repository.js";
@@ -150,6 +153,30 @@ app.post("/api/opportunities/:id/authorize", requireAuth(), async (req, res, nex
 app.get("/api/genomes", requireAuth(), async (req, res, next) => {
   try {
     res.json(await listGenomes(req.actor));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/genomes", requireAuth(), async (req, res, next) => {
+  try {
+    res.status(201).json(await createGenome(req.actor, req.body));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/genomes/:id/sections", requireAuth(), async (req, res, next) => {
+  try {
+    res.status(201).json(await addGenomeSection(req.actor, req.params.id, req.body));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/genomes/:id", requireAuth(), async (req, res, next) => {
+  try {
+    res.json(await getGenome(req.actor, req.params.id));
   } catch (error) {
     next(error);
   }
