@@ -166,6 +166,27 @@ export interface ApiDashboard {
     status: string;
     created_at: string;
   }[];
+  genomeCount: number;
+  nodes: { total: number; activeOrScaling: number };
+  /** null when no pool has capacity — an absent constraint is reported as
+   *  absent, never as 0% (which would read as plenty of headroom). */
+  resourcePressure: { resourceType: string; ratio: number } | null;
+}
+
+export interface ApiGenome {
+  id: string; code: string; name: string; thesis: string;
+  maturity: 'Draft' | 'Tested' | 'Verified' | 'Replication-Ready';
+  economic_gate_type: string; node_count: number; created_at: string;
+}
+export interface ApiMarketNode {
+  id: string; code: string; genome_id: string | null; genome_code: string | null;
+  geography: string; vertical: string; segment: string; offer: string; gate_type: string;
+  evidence_state: string; autonomy_level: string; status: string;
+  status_note: string | null; created_at: string;
+}
+export interface ApiResourcePool {
+  id: string; resource_type: string; capacity: number; allocated: number;
+  unit: string; financial: boolean; pressure: number; created_at: string;
 }
 export interface ApiDecision {
   id: string;
@@ -226,6 +247,15 @@ export const api = {
     check: (body: Record<string, unknown>) => request<SpendVerdict>("POST", "/api/intent-tokens/check", body),
   },
   dashboard: () => request<ApiDashboard>("GET", "/api/dashboard"),
+  genomes: {
+    list: () => request<ApiGenome[]>("GET", "/api/genomes"),
+  },
+  marketNodes: {
+    list: () => request<ApiMarketNode[]>("GET", "/api/market-nodes"),
+  },
+  resourcePools: {
+    list: () => request<ApiResourcePool[]>("GET", "/api/resource-pools"),
+  },
   decisions: {
     list: () => request<ApiDecision[]>("GET", "/api/decisions"),
   },

@@ -5,6 +5,7 @@ import { AuthProvider } from './auth/AuthProvider';
 import Shell from './components/Shell';
 import PublicShell from './components/PublicShell';
 import RequireAuth from './components/RequireAuth';
+import { DashboardProvider } from './state/DashboardData';
 import Home from './pages/Home';
 import Blueprint from './pages/Blueprint';
 import ControlPlane from './pages/ControlPlane';
@@ -93,7 +94,9 @@ export default function App() {
           <PublicShell route={path}>{publicPage(path)}</PublicShell>
         ) : (
           <RequireAuth path={path}>
-            <Shell route={path}>{privatePage(path)}</Shell>
+            <DashboardProvider>
+              <Shell route={path}>{privatePage(path)}</Shell>
+            </DashboardProvider>
           </RequireAuth>
         )}
       </AppStateProvider>

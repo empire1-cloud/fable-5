@@ -1,15 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { href } from '../lib/router';
-import { api, ApiError, type ApiDashboard } from '../lib/api';
+import { useDashboard } from '../state/DashboardData';
 import { summarize, toNumber } from '../lib/dashboard';
 import { ENGINE_MAP } from '../data/engines';
 import { Eyebrow, Badge, EmptyNote } from '../components/ui';
 import ExecutionRuntimeStatus from '../components/ExecutionRuntimeStatus';
-
-type LoadState =
-  | { status: 'loading' }
-  | { status: 'ok'; data: ApiDashboard }
-  | { status: 'error'; message: string };
 
 const VERDICT_TONE: Record<string, 'ok' | 'warn' | 'bad' | 'neutral'> = {
   AUTHORIZE_EXPERIMENT: 'ok',
@@ -20,25 +15,9 @@ const VERDICT_TONE: Record<string, 'ok' | 'warn' | 'bad' | 'neutral'> = {
 };
 
 export default function Home() {
-  const [state, setState] = useState<LoadState>({ status: 'loading' });
-
-  useEffect(() => {
-    let cancelled = false;
-    api
-      .dashboard()
-      .then((data) => {
-        if (!cancelled) setState({ status: 'ok', data });
-      })
-      .catch((error: unknown) => {
-        if (cancelled) return;
-        const message = error instanceof ApiError ? error.detail : 'Could not reach the control plane.';
-        setState({ status: 'error', message });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
+  // Shares the shell's single dashboard read — the strip above and this view
+  // must never disagree about the same company.
+  const { state } = useDashboard();
   const data = state.status === 'ok' ? state.data : null;
   const summary = data ? summarize(data) : null;
 
@@ -74,7 +53,7 @@ export default function Home() {
       {state.status === 'error' && (
         <section className="panel">
           <EmptyNote>
-            Could not load the company view: {state.message} — nothing is shown rather than showing
+            Could not load the company view: {state.error} — nothing is shown rather than showing
             numbers we cannot stand behind.
           </EmptyNote>
         </section>

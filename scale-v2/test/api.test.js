@@ -336,6 +336,58 @@ test("escalations: another tenant's escalation is invisible (404, not leaked)", 
   assert.equal(missing.status, 404);
 });
 
+test("dashboard: reports genomes, nodes, and resource pressure from real tables", async () => {
+  const token = await loginToken();
+  const { status, body } = await req("GET", "/api/dashboard", { token });
+  assert.equal(status, 200);
+
+  assert.equal(typeof body.genomeCount, "number", "genome count is server-computed");
+  assert.ok(body.nodes, "node counts are present");
+  assert.equal(typeof body.nodes.total, "number");
+  assert.equal(typeof body.nodes.activeOrScaling, "number");
+  assert.ok(
+    body.nodes.activeOrScaling <= body.nodes.total,
+    "active/scaling can never exceed the total"
+  );
+
+  // Bootstrap seeds pools at zero committed, so pressure is a real 0 — not null.
+  assert.ok(body.resourcePressure, "resource pressure is reported once pools exist");
+  assert.equal(typeof body.resourcePressure.ratio, "number");
+  assert.ok(body.resourcePressure.ratio >= 0 && body.resourcePressure.ratio <= 1);
+});
+
+test("resource pools: seeded by bootstrap and pressure is computed server-side", async () => {
+  const token = await loginToken();
+  const { status, body } = await req("GET", "/api/resource-pools", { token });
+  assert.equal(status, 200);
+  assert.ok(Array.isArray(body));
+  assert.ok(body.length >= 9, "the nine resource types are seeded as capacity config");
+
+  const cash = body.find((p) => p.resource_type === "cash");
+  assert.ok(cash, "cash pool exists");
+  assert.equal(cash.financial, true, "cash is marked financial");
+  assert.equal(typeof cash.pressure, "number");
+  assert.equal(cash.pressure, cash.capacity > 0 ? cash.allocated / cash.capacity : 0);
+});
+
+test("genomes and market nodes start empty — a new org has not proven one", async () => {
+  const token = await loginToken();
+  const genomes = await req("GET", "/api/genomes", { token });
+  assert.equal(genomes.status, 200);
+  assert.ok(Array.isArray(genomes.body));
+
+  const nodes = await req("GET", "/api/market-nodes", { token });
+  assert.equal(nodes.status, 200);
+  assert.ok(Array.isArray(nodes.body));
+});
+
+test("genomes/nodes/pools require authentication", async () => {
+  for (const path of ["/api/genomes", "/api/market-nodes", "/api/resource-pools"]) {
+    const { status } = await req("GET", path);
+    assert.equal(status, 401, `${path} is refused without a session`);
+  }
+});
+
 async function loginToken() {
   const login = await req("POST", "/api/auth/login", { body: { email: EMAIL, password: PASSWORD } });
   assert.equal(login.status, 200);

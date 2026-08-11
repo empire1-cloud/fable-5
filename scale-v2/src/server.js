@@ -31,7 +31,10 @@ import {
   listWaitlist,
   listDecisions,
   listEscalations,
-  resolveEscalation
+  resolveEscalation,
+  listGenomes,
+  listMarketNodes,
+  listResourcePools
 } from "./repository.js";
 import { evaluateIntentToken } from "./domain/spend.js";
 import { EvidenceTransitionError } from "./domain/evidence.js";
@@ -139,6 +142,30 @@ app.get("/api/opportunities", requireAuth(), async (req, res, next) => {
 app.post("/api/opportunities/:id/authorize", requireAuth(), async (req, res, next) => {
   try {
     res.json(await authorizeOpportunity(req.actor, req.params.id, req.body?.reason ?? "Authorized through Engine 00"));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/genomes", requireAuth(), async (req, res, next) => {
+  try {
+    res.json(await listGenomes(req.actor));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/market-nodes", requireAuth(), async (req, res, next) => {
+  try {
+    res.json(await listMarketNodes(req.actor));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/resource-pools", requireAuth(), async (req, res, next) => {
+  try {
+    res.json(await listResourcePools(req.actor));
   } catch (error) {
     next(error);
   }

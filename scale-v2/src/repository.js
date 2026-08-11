@@ -644,20 +644,92 @@ export async function listWaitlist(actor) {
   return result.rows;
 }
 
+export async function listGenomes(actor) {
+  return withTenant(actor.tenantId, async (client) => {
+    const result = await client.query(
+      `SELECT g.id, g.code, g.name, g.thesis, g.maturity, g.economic_gate_type, g.created_at,
+              (SELECT count(*)::int FROM market_nodes n WHERE n.genome_id = g.id) AS node_count
+         FROM company_genomes g
+        ORDER BY g.code`
+    );
+    return result.rows;
+  });
+}
+
+export async function listMarketNodes(actor) {
+  return withTenant(actor.tenantId, async (client) => {
+    const result = await client.query(
+      `SELECT n.id, n.code, n.genome_id, g.code AS genome_code, n.geography, n.vertical, n.segment,
+              n.offer, n.gate_type, n.evidence_state, n.autonomy_level, n.status, n.status_note,
+              n.created_at
+         FROM market_nodes n
+         LEFT JOIN company_genomes g ON g.id = n.genome_id
+        ORDER BY n.code`
+    );
+    return result.rows;
+  });
+}
+
+export async function listResourcePools(actor) {
+  return withTenant(actor.tenantId, async (client) => {
+    const result = await client.query(
+      `SELECT id, resource_type, capacity, allocated, unit, financial, created_at
+         FROM resource_pools
+        ORDER BY resource_type`
+    );
+    return result.rows.map((r) => ({
+      ...r,
+      capacity: Number(r.capacity),
+      allocated: Number(r.allocated),
+      // Computed here so the client never divides by zero or invents a ratio.
+      pressure: Number(r.capacity) > 0 ? Number(r.allocated) / Number(r.capacity) : 0
+    }));
+  });
+}
+
 export async function dashboard(actor) {
   return withTenant(actor.tenantId, async (client) => {
-    const [engineCounts, evidenceCounts, escalations, opportunities] = await Promise.all([
+    const [engineCounts, evidenceCounts, escalations, opportunities, genomes, nodes, pressure] = await Promise.all([
       client.query(`SELECT engine_id, count(*)::int AS count FROM engine_work_items GROUP BY engine_id ORDER BY engine_id`),
       client.query(`SELECT state, count(*)::int AS count FROM evidence_records GROUP BY state`),
       client.query(`SELECT count(*)::int AS count FROM escalations WHERE resolved_at IS NULL`),
-      client.query(`SELECT id, title, ranking_score, ranking_verdict, status, created_at FROM opportunities ORDER BY ranking_score DESC LIMIT 10`)
+      client.query(`SELECT id, title, ranking_score, ranking_verdict, status, created_at FROM opportunities ORDER BY ranking_score DESC LIMIT 10`),
+      client.query(`SELECT count(*)::int AS count FROM company_genomes`),
+      client.query(
+        `SELECT count(*)::int AS total,
+                count(*) FILTER (WHERE status IN ('Active','Scaling'))::int AS active
+           FROM market_nodes`
+      ),
+      // The tightest pool defines the pressure. Ordering by ratio means the
+      // reported number is the real constraint, not an average that hides it.
+      client.query(
+        `SELECT resource_type, capacity, allocated,
+                CASE WHEN capacity > 0 THEN allocated / capacity ELSE 0 END AS ratio
+           FROM resource_pools
+          WHERE capacity > 0
+          ORDER BY ratio DESC
+          LIMIT 1`
+      )
     ]);
+
+    const tightest = pressure.rows[0] ?? null;
+
     return {
       tenant: { id: actor.tenantId, name: actor.tenantName },
       engineCounts: engineCounts.rows,
       evidenceCounts: evidenceCounts.rows,
       openEscalations: escalations.rows[0]?.count ?? 0,
-      opportunities: opportunities.rows
+      opportunities: opportunities.rows,
+      genomeCount: genomes.rows[0]?.count ?? 0,
+      nodes: {
+        total: nodes.rows[0]?.total ?? 0,
+        activeOrScaling: nodes.rows[0]?.active ?? 0
+      },
+      // null when no pool has capacity — an absent constraint is reported as
+      // absent rather than as 0%, which would read as "plenty of headroom".
+      resourcePressure: tightest
+        ? { resourceType: tightest.resource_type, ratio: Number(tightest.ratio) }
+        : null
     };
   });
 }

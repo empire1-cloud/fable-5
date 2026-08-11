@@ -25,8 +25,15 @@ export function toNumber(value: string | number | null | undefined): number {
 export interface DashboardSummary {
   totalEvidence: number;
   canonized: number;
+  /** RECEIPTED — has a receipt, still awaiting an independent check */
+  pendingVerification: number;
   openEscalations: number;
   rankedOpportunities: number;
+  genomeCount: number;
+  nodes: { total: number; activeOrScaling: number };
+  /** null when no pool has capacity; never coerced to 0, which would read as
+   *  headroom rather than "unknown". */
+  resourcePressure: { resourceType: string; ratio: number } | null;
   /** every evidence state, in canonical order, including zeroes */
   pipeline: { state: EvidenceState; count: number }[];
   /** every engine, in canonical order, including idle ones */
@@ -42,8 +49,12 @@ export function summarize(data: ApiDashboard): DashboardSummary {
     // unknown state coming back from the server is still counted, not dropped.
     totalEvidence: data.evidenceCounts.reduce((sum, e) => sum + e.count, 0),
     canonized: byState.get('CANONIZED') ?? 0,
+    pendingVerification: byState.get('RECEIPTED') ?? 0,
     openEscalations: data.openEscalations,
     rankedOpportunities: data.opportunities.length,
+    genomeCount: data.genomeCount,
+    nodes: data.nodes,
+    resourcePressure: data.resourcePressure,
     pipeline: EVIDENCE_STATES.map((state) => ({ state, count: byState.get(state) ?? 0 })),
     engineLoad: ENGINE_IDS.map((id) => ({ id, count: byEngine.get(id) ?? 0 })),
   };

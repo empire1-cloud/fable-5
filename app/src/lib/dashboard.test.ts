@@ -21,6 +21,9 @@ const payload: ApiDashboard = {
       created_at: '2026-08-11T04:12:12.011Z',
     },
   ],
+  genomeCount: 2,
+  nodes: { total: 4, activeOrScaling: 1 },
+  resourcePressure: { resourceType: 'agent time', ratio: 0.88 },
 };
 
 describe('toNumber', () => {
@@ -78,10 +81,42 @@ describe('summarize', () => {
       evidenceCounts: [],
       openEscalations: 0,
       opportunities: [],
+      genomeCount: 0,
+      nodes: { total: 0, activeOrScaling: 0 },
+      resourcePressure: null,
     };
     const s = summarize(empty);
     expect(s.totalEvidence).toBe(0);
     expect(s.pipeline).toHaveLength(EVIDENCE_STATES.length);
     expect(s.engineLoad).toHaveLength(9);
+  });
+});
+
+describe('genomes, nodes, and resource pressure', () => {
+  it('passes the server-computed genome and node counts through untouched', () => {
+    const s = summarize(payload);
+    expect(s.genomeCount).toBe(2);
+    expect(s.nodes).toEqual({ total: 4, activeOrScaling: 1 });
+  });
+
+  it('keeps resource pressure null rather than coercing it to 0', () => {
+    // 0 would render as "no pressure" — plenty of headroom. Absent is not zero.
+    const noPools: ApiDashboard = { ...payload, resourcePressure: null };
+    expect(summarize(noPools).resourcePressure).toBeNull();
+  });
+
+  it('reports the tightest pool as the constraint, with its ratio', () => {
+    const s = summarize(payload);
+    expect(s.resourcePressure).toEqual({ resourceType: 'agent time', ratio: 0.88 });
+  });
+
+  it('derives pending verification from RECEIPTED, not from a separate count', () => {
+    const withReceipted: ApiDashboard = {
+      ...payload,
+      evidenceCounts: [...payload.evidenceCounts, { state: 'RECEIPTED', count: 3 }],
+    };
+    expect(summarize(withReceipted).pendingVerification).toBe(3);
+    // and 0 when the server reports none, rather than undefined
+    expect(summarize(payload).pendingVerification).toBe(0);
   });
 });
