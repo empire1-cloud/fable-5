@@ -138,3 +138,14 @@ Selections persist via `localStorage` (`fable5.draftingRoom`).
 
 - To add new routes, edit `src/lib/router.tsx`.
 - To add persistent storage, integrate with the backend API (see `backend/` directory).
+---
+
+## Independence and attribution
+
+FABLE-5 is an independent product of Empire-1. It is not affiliated with,
+endorsed by, sponsored by, or built in partnership with Anthropic or any other
+AI vendor. AI assistants — including Anthropic's Claude models — were used as
+engineering and design tools while building this system. The governance model,
+evidence state machine, and control-plane architecture are Empire-1's own work.
+The product name is our own and is not a claim of association with any vendor,
+model, or trademark that may share similar wording.

@@ -122,6 +122,10 @@ export default function PublicShell({
         <div className="pub-foot-fine">
           <span>WE EVOLVE, NEVER DELETE.</span>
           <span>No testimonials, certifications, or production metrics are claimed on this site.</span>
+          <span>
+            An independent product of Empire-1 — not affiliated with or endorsed by any AI vendor.{" "}
+            <a className="pub-foot-link" href={href("/trust")}>Attribution</a>
+          </span>
         </div>
       </footer>
     </div>

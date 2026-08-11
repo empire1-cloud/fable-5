@@ -656,6 +656,14 @@
   letter-spacing: 0.08em;
   color: var(--pub-ink-faint);
 }
+.pub-foot-link {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.pub-foot-link:hover {
+  color: var(--pub-ink);
+}
 
 /* ── control-plane redesign (PublicHome) ───────────────────────────── */
 .pub-page--cp .pub-section {

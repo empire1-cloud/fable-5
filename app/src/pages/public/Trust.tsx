@@ -15,6 +15,13 @@ const LIMITS = [
   "This site makes no claims we cannot back: no testimonials, no certifications, no production metrics.",
 ];
 
+const INDEPENDENCE = [
+  "FABLE-5 is an independent product of Empire-1. It is not affiliated with, endorsed by, sponsored by, or built in partnership with Anthropic or any other AI vendor.",
+  "AI assistants — including Anthropic's Claude models — were used as engineering and design tools while building this system, the same way an IDE or a compiler is a tool. The governance model, evidence state machine, and control-plane architecture are Empire-1's own work.",
+  "The product name is our own and is not a claim of association with any vendor, model, or trademark that may share similar wording.",
+  "No AI vendor has reviewed, certified, or approved this system.",
+];
+
 export default function Trust() {
   return (
     <div className="pub-page pub-page--narrow">
@@ -47,6 +54,18 @@ export default function Trust() {
         <h2 className="pub-h3" id="pub-trust-limits">Honest limits</h2>
         <ul className="pub-list">
           {LIMITS.map((l) => (
+            <li key={l} className="pub-list-item">
+              <span className="pub-list-mark" aria-hidden="true">·</span>
+              {l}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="pub-rulebox" aria-labelledby="pub-trust-independence">
+        <h2 className="pub-h3" id="pub-trust-independence">Independence and attribution</h2>
+        <ul className="pub-list">
+          {INDEPENDENCE.map((l) => (
             <li key={l} className="pub-list-item">
               <span className="pub-list-mark" aria-hidden="true">·</span>
               {l}
