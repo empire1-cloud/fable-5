@@ -1,4 +1,6 @@
-# FABLE-5 — Autonomous Company Control Plane
+# FABLE-5 — The Governance Layer for AI-Native Companies
+
+![FABLE-5 — the governance layer for AI-native companies](docs/screenshots/01-hero.png)
 
 An evidence-governed control plane for AI-native companies, built by **Empire-1**.
 
@@ -18,6 +20,20 @@ receipt, independent verification, and a measured outcome.
   founder-approved Intent Token. NO VALID TOKEN → NO SPEND.
 - **We evolve, never delete.** Blocked results and contradictions are retained
   as negative intelligence, not erased.
+
+## What it looks like
+
+**The decision ledger** — every row is a real `decisions` row written by Engine 00 the moment
+an opportunity is authorized. The ranking score and factors are the server's own arithmetic,
+not narrated after the fact.
+
+![Decision ledger showing a real authorized decision with Engine 00 ranking factors](docs/screenshots/02-decisions.png)
+
+**The escalation queue** — when Engine 00 refuses a gate (here: an opportunity pushed without
+grade-A/B evidence and a receipt), the refusal is *persisted*, not swallowed. It stays on the
+record until someone resolves it with a stated reason.
+
+![Escalation queue showing a persisted Engine 00 gate refusal awaiting resolution](docs/screenshots/03-escalations.png)
 
 ## Layout
 
@@ -59,6 +75,8 @@ green.
 ---
 
 ## Independence and attribution
+
+![Trust page — operating boundaries, honest limits, and attribution](docs/screenshots/04-trust.png)
 
 **FABLE-5 is an independent product of Empire-1.** It is not affiliated with,
 endorsed by, sponsored by, or built in partnership with Anthropic or any other

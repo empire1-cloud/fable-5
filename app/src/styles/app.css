@@ -383,6 +383,7 @@ a { color: var(--accent); }
 .opportunity-title { font-size: 14.5px; font-weight: 600; }
 .opportunity-meta { font-family: var(--mono); font-size: 10.5px; color: var(--ink-50); margin-top: 3px; }
 .opportunity-caret { color: var(--accent); flex: none; }
+.escalation-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
 .opportunity-body { padding: 0 18px 18px; }
 .opportunity-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 6px; }
 .epi-tag { font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); border: 1px solid var(--edge-soft); padding: 1px 5px; margin-right: 6px; }

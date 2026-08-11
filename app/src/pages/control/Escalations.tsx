@@ -120,11 +120,9 @@ export default function Escalations() {
       {open.map((it) => (
         <section className="panel" key={it.id}>
           <div className="panel-label">{it.id.slice(0, 8)} · {new Date(it.created_at).toLocaleString()}</div>
-          <div className="opportunity-titleblock">
+          <div className="escalation-head">
             <div className="opportunity-title">Engine {it.engine_id} gate refusal</div>
-            <div className="opportunity-meta">
-              <Badge tone={SEVERITY_TONE[it.severity]}>{it.severity}</Badge>
-            </div>
+            <Badge tone={SEVERITY_TONE[it.severity]}>{it.severity}</Badge>
           </div>
           <div className="detail-label">WHY IT IS ESCALATED</div>
           <div className="muted">{it.reason}</div>
@@ -138,7 +136,7 @@ export default function Escalations() {
           {resolved.map((it) => (
             <section className="panel" key={it.id}>
               <div className="panel-label">{it.id.slice(0, 8)} · {new Date(it.created_at).toLocaleString()}</div>
-              <div className="opportunity-titleblock">
+              <div className="escalation-head">
                 <div className="opportunity-title">Engine {it.engine_id} gate refusal</div>
                 <Badge tone="ok">RESOLVED</Badge>
               </div>

@@ -243,7 +243,7 @@ export default function PublicHome() {
       <section className="pub-hero pub-hero--live" aria-label="A live company running on FABLE-5">
         <ParticleCanvas />
         <div className="pub-hero-inner">
-          <SectionLabel num="00" text="FABLE-5 · THE AI COMPANY OPERATING SYSTEM" />
+          <SectionLabel num="00" text="FABLE-5 · THE GOVERNANCE LAYER FOR AI-NATIVE COMPANIES" />
 
           <h1 className="pub-hero-title pub-hero-title--live">
             This company is <span className="gold-shimmer">alive.</span>
@@ -277,8 +277,8 @@ export default function PublicHome() {
           </div>
 
           <p className="pub-hero-sub pub-hero-sub--live">
-            FABLE-5 is the operating system for AI-native companies. It runs the whole company — strategy to scale —
-            it doesn't automate a department.
+            FABLE-5 is the governance layer for AI-native companies. It sits on top of your agents and decides what
+            counts as done — across the whole company, strategy to scale, not one automated department.
           </p>
 
           <div className="pub-hero-actions">
