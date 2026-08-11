@@ -23,6 +23,13 @@ receipt, independent verification, and a measured outcome.
 
 ## What it looks like
 
+**GOD MODE** — the whole company in one server-computed read: every evidence state, all nine
+engines, open escalations, and the ranked opportunity graph. You can see everything. You still
+can't fake anything — the state machine refuses a skipped gate from this screen exactly as it
+does from anywhere else. Omniscience, not permission.
+
+![GOD MODE — every engine, every record, one read](docs/screenshots/05-god-mode.png)
+
 **The decision ledger** — every row is a real `decisions` row written by Engine 00 the moment
 an opportunity is authorized. The ranking score and factors are the server's own arithmetic,
 not narrated after the fact.

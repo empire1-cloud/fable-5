@@ -150,6 +150,23 @@ export interface OpportunityRanking {
   confidence: number;
   factors: Record<string, number>;
 }
+/** GOD MODE payload — the whole company in one server-computed read.
+ *  Note: ranking_score arrives as a numeric string from this endpoint
+ *  (unlike /api/opportunities, which casts it), so it is typed honestly. */
+export interface ApiDashboard {
+  tenant: { id: string; name: string };
+  engineCounts: { engine_id: string; count: number }[];
+  evidenceCounts: { state: string; count: number }[];
+  openEscalations: number;
+  opportunities: {
+    id: string;
+    title: string;
+    ranking_score: string | number;
+    ranking_verdict: string;
+    status: string;
+    created_at: string;
+  }[];
+}
 export interface ApiDecision {
   id: string;
   opportunity_id: string;
@@ -208,6 +225,7 @@ export const api = {
     revoke: (tokenId: string) => request<ApiIntentToken>("POST", `/api/intent-tokens/${tokenId}/revoke`),
     check: (body: Record<string, unknown>) => request<SpendVerdict>("POST", "/api/intent-tokens/check", body),
   },
+  dashboard: () => request<ApiDashboard>("GET", "/api/dashboard"),
   decisions: {
     list: () => request<ApiDecision[]>("GET", "/api/decisions"),
   },
