@@ -535,8 +535,22 @@
   font-size: clamp(30px, 4.6vw, 52px);
   line-height: 1.04;
   letter-spacing: -0.02em;
-  margin: 0 0 30px;
+  margin: 0 0 20px;
   max-width: 22ch;
+}
+
+/* The spec line under the closing title: states what the system is in one
+   breath, so the category claim above it is immediately substantiated. */
+.pub-final-spec {
+  font-family: var(--font-mono);
+  font-size: clamp(12px, 1.5vw, 14px);
+  line-height: 1.7;
+  letter-spacing: 0.02em;
+  color: var(--pub-ink);
+  max-width: 62ch;
+  margin: 0 0 22px;
+  padding-left: 14px;
+  border-left: 2px solid var(--pub-gold, #d4af37);
 }
 
 /* ── page head for sub-pages ───────────────────────────────────────── */

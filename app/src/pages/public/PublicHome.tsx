@@ -189,6 +189,16 @@ const DEPARTMENTS = [
   { e: "08", name: "Capital", core: true },
 ];
 
+/* The department count is DERIVED from the grid above, never typed into copy.
+   A headline once claimed "ten departments" while the grid rendered nine and
+   the engine registry (plus its test) held exactly nine — on a page whose
+   whole claim is that every number is evidenced, the count is the one thing
+   that cannot drift. */
+const DEPT_COUNT = DEPARTMENTS.length;
+const DEPT_WORD =
+  ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"][DEPT_COUNT] ??
+  String(DEPT_COUNT);
+
 const COMPARISON: { today: string; fable: string }[] = [
   { today: "Buy AI tools", fable: "Run an AI company" },
   { today: "Separate software", fable: "Unified operating system" },
@@ -341,7 +351,7 @@ export default function PublicHome() {
       <section className="pub-section" aria-labelledby="cp-market-title">
         <SectionLabel num="02" text="THE CATEGORY" />
         <h2 id="cp-market-title" className="pub-h2">
-          You were never buying a category. You were buying ten departments.
+          You were never buying a category. You were buying {DEPT_WORD} departments.
         </h2>
         <div className="pub-compare-wrap">
           <table className="pub-compare">
@@ -654,7 +664,7 @@ export default function PublicHome() {
       <section className="pub-section" aria-labelledby="cp-dept-title">
         <SectionLabel num="10" text="THE OPERATING SYSTEM" />
         <h2 id="cp-dept-title" className="pub-h2">
-          Nine departments. One operating system.
+          {DEPT_WORD.charAt(0).toUpperCase() + DEPT_WORD.slice(1)} departments. One operating system.
         </h2>
         <div className="pub-dept-grid">
           {DEPARTMENTS.map((d) => {
@@ -677,19 +687,23 @@ export default function PublicHome() {
       <section className="pub-final" aria-label="Closing call to action">
         <SectionLabel num="11" text="THE OFFER" />
         <h2 className="pub-final-title">
-          The first operating system for{" "}
-          <span className="gold-shimmer">AI-native companies.</span>
+          The operating system for the{" "}
+          <span className="gold-shimmer">AI-native company.</span>
         </h2>
+        <p className="pub-final-spec">
+          {DEPARTMENTS.length} departments. One governed execution layer. Every action evidenced, every dollar
+          authorized, every outcome accountable.
+        </p>
         <p className="pub-lead">
           Founding access is granted directly by the founder of FABLE-5. No pricing page to hide behind — we prove
           it on your own company first.
         </p>
         <div className="pub-hero-actions">
           <a className="pub-btn pub-btn--gold" href={href("/founding-access")}>
-            Enter founding access
+            Run your company
           </a>
           <a className="pub-btn pub-btn--ghost" href={href("/how-it-works")}>
-            How it works →
+            See the system →
           </a>
         </div>
       </section>
