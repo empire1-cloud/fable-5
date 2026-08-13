@@ -52,8 +52,31 @@ async function request<T>(
   const text = await res.text();
   let payload: unknown = null;
   try { payload = text ? JSON.parse(text) : null; } catch { payload = text; }
+
+  // A request that lands on static hosting instead of the API fails in a way
+  // that says nothing useful: a bare 405 (static files accept only GET/HEAD),
+  // or a 200/404 whose body is the SPA's own index.html. Both mean the same
+  // thing — no API is reachable at this origin — so say that instead of
+  // surfacing a status code the visitor cannot act on.
+  if (!res.ok && isStaticHostResponse(res.status, text)) {
+    throw new ApiError(
+      res.status,
+      BASE
+        ? `No API is reachable at ${BASE} — a static host answered instead of the control plane. Check the control plane is running and that VITE_API_BASE points at it.`
+        : "No API is configured for this site. The front end was built without VITE_API_BASE, so requests are hitting static hosting instead of a control plane.",
+    );
+  }
+
   if (!res.ok) throw new ApiError(res.status, detailOf(payload) ?? `${method} ${path} failed (${res.status})`);
   return payload as T;
+}
+
+/** True when the response looks like a static host answering an API call:
+ *  405 on a path that only ever accepts POST/PUT, or an HTML body where JSON
+ *  was expected (the SPA catch-all rewrite serving index.html). */
+function isStaticHostResponse(status: number, body: string): boolean {
+  if (status === 405) return true;
+  return /^\s*<(!doctype html|html)/i.test(body);
 }
 
 function detailOf(payload: unknown): string | null {
