@@ -44,6 +44,16 @@ import { EvidenceTransitionError } from "./domain/evidence.js";
 
 const app = express();
 const port = Number(process.env.PORT ?? 3001);
+// Unset means "reflect any origin", which is fine on a laptop and wrong for an
+// API on the public internet. Production must name its front ends explicitly.
+if (!process.env.APP_ORIGIN && process.env.NODE_ENV === "production") {
+  console.error(JSON.stringify({
+    level: "fatal",
+    event: "startup_refused",
+    message: "APP_ORIGIN is required when NODE_ENV=production — refusing to accept requests from any origin."
+  }));
+  process.exit(1);
+}
 const appOrigin = process.env.APP_ORIGIN
   ? process.env.APP_ORIGIN.split(",").map((s) => s.trim())
   : true;

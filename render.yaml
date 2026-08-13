@@ -1,0 +1,63 @@
+# Render blueprint for the FABLE-5 control plane.
+#
+# Provisions the API and its PostgreSQL together, so the database URL is wired
+# in by the platform rather than pasted by hand. Import this file in Render
+# (New → Blueprint) and the only values left to supply are the ones marked
+# sync: false below — deliberately, because they are secrets and the founder's
+# own address, not something a config file should decide.
+#
+# The one value that cannot be known until the API is live is APP_ORIGIN's
+# counterpart on the front end: after the first deploy, set VITE_API_BASE in
+# Vercel to this service's URL and redeploy the front end. See DEPLOY.md.
+
+databases:
+  - name: fable5-db
+    databaseName: fable5
+    plan: basic-256mb
+    postgresMajorVersion: "16"
+
+services:
+  - type: web
+    name: fable5-control-plane
+    runtime: docker
+    dockerfilePath: ./scale-v2/Dockerfile
+    dockerContext: ./scale-v2
+    plan: starter
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      # Migrations run as the database owner; the app connects as fable5_app,
+      # which is NOSUPERUSER and NOBYPASSRLS so tenant isolation cannot be
+      # bypassed by the application's own credentials.
+      - key: DATABASE_ADMIN_URL
+        fromDatabase:
+          name: fable5-db
+          property: connectionString
+
+      # Rotated onto the fable5_app role by scripts/migrate.js on every deploy.
+      - key: APP_DB_PASSWORD
+        generateValue: true
+
+      # Built from the generated password at deploy time — see DEPLOY.md for
+      # the one-line construction, since Render cannot interpolate secrets into
+      # another variable.
+      - key: DATABASE_URL
+        sync: false
+
+      # Comma-separated front-end origins. Production refuses to boot without
+      # this rather than accepting requests from anywhere.
+      - key: APP_ORIGIN
+        sync: false
+
+      - key: SESSION_TTL_HOURS
+        value: "12"
+
+      # Founder account created by `npm run bootstrap`. Never committed.
+      - key: BOOTSTRAP_TENANT_NAME
+        sync: false
+      - key: BOOTSTRAP_ADMIN_EMAIL
+        sync: false
+      - key: BOOTSTRAP_ADMIN_PASSWORD
+        sync: false
