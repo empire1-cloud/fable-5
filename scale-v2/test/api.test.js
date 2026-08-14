@@ -46,6 +46,12 @@ async function req(method, pathname, { token, body } = {}) {
 
 test.before(async () => {
   assert.ok(EMAIL && PASSWORD, "BOOTSTRAP_ADMIN_EMAIL/PASSWORD must be set in scale-v2/.env");
+
+  // The suite legitimately creates several organisations and deliberately fails
+  // several logins, from one address — which is exactly what the throttles are
+  // built to stop. Clearing the ledger before the run isolates the tests
+  // without weakening the production limits they assert.
+  await resetAuthAttempts();
   server = spawn(process.execPath, [serverEntry], {
     env: { ...process.env, PORT: String(TEST_PORT) },
     stdio: ["ignore", "pipe", "pipe"],
@@ -486,6 +492,203 @@ test("genomes/nodes/pools require authentication", async () => {
     assert.equal(status, 401, `${path} is refused without a session`);
   }
 });
+
+test("signup: a stranger can create an organisation and is signed straight in", async () => {
+  await resetAuthAttempts(); // isolate from other tests' signups; the throttle is asserted separately
+  const suffix = randomUUID().slice(0, 8);
+  const email = `founder-${suffix}@example.com`;
+
+  const created = await req("POST", "/api/auth/signup", {
+    body: { organisationName: `Probe Co ${suffix}`, email, password: "a-long-enough-passphrase" }
+  });
+  assert.equal(created.status, 201);
+  assert.ok(created.body.token, "signed in immediately — no second credential entry");
+  assert.equal(created.body.actor.email, email);
+  assert.equal(created.body.actor.role, "OWNER");
+  assert.equal(created.body.trial.days, 14);
+
+  const token = created.body.token;
+
+  // The new org is real and isolated: it sees none of another tenant's records.
+  const evidence = await req("GET", "/api/evidence", { token });
+  assert.equal(evidence.status, 200);
+  assert.deepEqual(evidence.body, [], "a brand-new organisation starts empty");
+
+  // Resource pools are seeded; genomes deliberately are not.
+  const pools = await req("GET", "/api/resource-pools", { token });
+  assert.ok(pools.body.length >= 9, "capacity config is provisioned");
+  const genomes = await req("GET", "/api/genomes", { token });
+  assert.deepEqual(genomes.body, [], "no genome is invented for a new company");
+
+  // And it can actually work — the trial writes.
+  const wrote = await req("POST", "/api/evidence", { token, body: { claim: `First claim ${suffix}` } });
+  assert.equal(wrote.status, 201);
+});
+
+test("signup: refuses a duplicate email, a weak password, and a missing name", async () => {
+  await resetAuthAttempts(); // isolate from other tests' signups; the throttle is asserted separately
+  const suffix = randomUUID().slice(0, 8);
+  const email = `dupe-${suffix}@example.com`;
+  const ok = await req("POST", "/api/auth/signup", {
+    body: { organisationName: `Dupe Co ${suffix}`, email, password: "a-long-enough-passphrase" }
+  });
+  assert.equal(ok.status, 201);
+
+  const again = await req("POST", "/api/auth/signup", {
+    body: { organisationName: "Another Co", email, password: "a-long-enough-passphrase" }
+  });
+  assert.equal(again.status, 409, "an existing address is never silently attached to a new org");
+
+  const weak = await req("POST", "/api/auth/signup", {
+    body: { organisationName: "Weak Co", email: `weak-${suffix}@example.com`, password: "short" }
+  });
+  assert.equal(weak.status, 400);
+
+  const noName = await req("POST", "/api/auth/signup", {
+    body: { organisationName: "", email: `noname-${suffix}@example.com`, password: "a-long-enough-passphrase" }
+  });
+  assert.equal(noName.status, 400);
+});
+
+test("signup: a failed creation leaves nothing behind", async () => {
+  await resetAuthAttempts(); // isolate from other tests' signups; the throttle is asserted separately
+  const suffix = randomUUID().slice(0, 8);
+  const email = `atomic-${suffix}@example.com`;
+  await req("POST", "/api/auth/signup", {
+    body: { organisationName: `Atomic Co ${suffix}`, email, password: "a-long-enough-passphrase" }
+  });
+  // Second attempt collides on email and must roll back entirely — no orphan
+  // tenant, and the original account still works.
+  await req("POST", "/api/auth/signup", {
+    body: { organisationName: `Orphan Co ${suffix}`, email, password: "a-long-enough-passphrase" }
+  });
+  const login = await req("POST", "/api/auth/login", { body: { email, password: "a-long-enough-passphrase" } });
+  assert.equal(login.status, 200, "the original account is untouched by the failed attempt");
+  assert.match(login.body.actor.tenantName, /Atomic Co/, "no orphan tenant took over the account");
+});
+
+test("subscription: a new org reports an active trial and its plans", async () => {
+  await resetAuthAttempts(); // isolate from other tests' signups; the throttle is asserted separately
+  const suffix = randomUUID().slice(0, 8);
+  const created = await req("POST", "/api/auth/signup", {
+    body: { organisationName: `Sub Co ${suffix}`, email: `sub-${suffix}@example.com`, password: "a-long-enough-passphrase" }
+  });
+  const token = created.body.token;
+
+  const sub = await req("GET", "/api/subscription", { token });
+  assert.equal(sub.status, 200);
+  assert.equal(sub.body.status, "trialing");
+  assert.equal(sub.body.canWrite, true);
+  assert.equal(sub.body.canRead, true);
+  assert.ok(sub.body.trialDaysRemaining > 0 && sub.body.trialDaysRemaining <= 14);
+  assert.ok(Array.isArray(sub.body.plans) && sub.body.plans.length >= 3, "plans are advertised for upgrade");
+});
+
+test("expired trial goes READ-ONLY: reads still work, writes are refused 402", async () => {
+  await resetAuthAttempts(); // isolate from other tests' signups; the throttle is asserted separately
+  const suffix = randomUUID().slice(0, 8);
+  const created = await req("POST", "/api/auth/signup", {
+    body: { organisationName: `Expiry Co ${suffix}`, email: `expiry-${suffix}@example.com`, password: "a-long-enough-passphrase" }
+  });
+  const token = created.body.token;
+  const tenantId = created.body.actor.tenantId;
+
+  // Record something during the trial so there is history to protect.
+  const during = await req("POST", "/api/evidence", { token, body: { claim: `Recorded during trial ${suffix}` } });
+  assert.equal(during.status, 201);
+
+  // Expire the trial by moving its end date into the past.
+  await adminQuery(`UPDATE subscriptions SET trial_ends_at = now() - interval '1 day' WHERE tenant_id = $1`, [tenantId]);
+
+  const sub = await req("GET", "/api/subscription", { token });
+  assert.equal(sub.body.canWrite, false);
+  assert.equal(sub.body.canRead, true);
+
+  // Reads: everything recorded stays visible.
+  const stillReadable = await req("GET", "/api/evidence", { token });
+  assert.equal(stillReadable.status, 200);
+  assert.ok(
+    stillReadable.body.some((r) => r.id === during.body.id),
+    "nothing recorded is deleted or hidden when a trial ends"
+  );
+
+  // Writes: refused with 402 and an actionable reason, not 403.
+  const blocked = await req("POST", "/api/evidence", { token, body: { claim: "after expiry" } });
+  assert.equal(blocked.status, 402, "payment required, not permission denied");
+  assert.equal(blocked.body.readOnly, true);
+  assert.match(blocked.body.reason, /remain readable/);
+
+  // The gate covers every mutating route, not just the one it was written for.
+  const alsoBlocked = await req("POST", "/api/genomes", { token, body: { code: "G-X", name: "X" } });
+  assert.equal(alsoBlocked.status, 402);
+  const transitionBlocked = await req("POST", `/api/evidence/${during.body.id}/transition`, {
+    token, body: { to: "AUTHORIZED", reason: "should be refused" }
+  });
+  assert.equal(transitionBlocked.status, 402);
+});
+
+test("signup throttle stops an address creating unlimited organisations", async () => {
+  await resetAuthAttempts();
+  const suffix = randomUUID().slice(0, 8);
+
+  let sawLockout = false;
+  for (let i = 0; i < 8; i++) {
+    const attempt = await req("POST", "/api/auth/signup", {
+      body: {
+        organisationName: `Flood Co ${suffix}-${i}`,
+        email: `flood-${suffix}-${i}@example.com`,
+        password: "a-long-enough-passphrase"
+      }
+    });
+    if (attempt.status === 429) {
+      sawLockout = true;
+      assert.match(attempt.body.reason, /Too many organisations created/);
+      break;
+    }
+    assert.equal(attempt.status, 201);
+  }
+  assert.ok(sawLockout, "an unthrottled signup endpoint lets one address flood the tenant table");
+});
+
+test("login throttle locks an account after repeated failures, then reports 429", async () => {
+  const suffix = randomUUID().slice(0, 8);
+  const email = `throttle-${suffix}@example.com`;
+  await req("POST", "/api/auth/signup", {
+    body: { organisationName: `Throttle Co ${suffix}`, email, password: "a-long-enough-passphrase" }
+  });
+
+  let sawLockout = false;
+  for (let i = 0; i < 12; i++) {
+    const attempt = await req("POST", "/api/auth/login", { body: { email, password: "wrong-password-here" } });
+    if (attempt.status === 429) {
+      sawLockout = true;
+      assert.match(attempt.body.reason, /Too many failed sign-in attempts/);
+      break;
+    }
+    assert.equal(attempt.status, 401);
+  }
+  assert.ok(sawLockout, "an unthrottled login endpoint is brute-forceable");
+
+  // Correct credentials are refused too while locked — the throttle is not a
+  // password check and must not be bypassable by finally guessing right.
+  const correct = await req("POST", "/api/auth/login", { body: { email, password: "a-long-enough-passphrase" } });
+  assert.equal(correct.status, 429);
+});
+
+async function resetAuthAttempts() {
+  await adminQuery("DELETE FROM auth_attempts");
+}
+
+async function adminQuery(sql, params) {
+  const pg = await import("pg");
+  const client = new pg.default.Client({ connectionString: process.env.DATABASE_ADMIN_URL });
+  await client.connect();
+  try {
+    return await client.query(sql, params);
+  } finally {
+    await client.end();
+  }
+}
 
 async function loginToken() {
   const login = await req("POST", "/api/auth/login", { body: { email: EMAIL, password: PASSWORD } });

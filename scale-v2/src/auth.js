@@ -19,6 +19,25 @@ export async function verifyPassword(password, encoded) {
 
 const tokenHash = (token) => createHash("sha256").update(token).digest("hex");
 
+/**
+ * Mints a session for an already-identified actor.
+ *
+ * Split out of login() so signup can sign a founder straight in without
+ * re-verifying a password it just hashed — and so session issuance has exactly
+ * one implementation. Callers are responsible for having established identity;
+ * this function performs no authentication of its own.
+ */
+export async function issueSession(actor) {
+  const token = randomBytes(32).toString("base64url");
+  const ttlHours = Number(process.env.SESSION_TTL_HOURS ?? 12);
+  await pool.query(
+    `INSERT INTO auth_sessions (token_hash, user_id, tenant_id, expires_at)
+     VALUES ($1, $2, $3, now() + ($4 || ' hours')::interval)`,
+    [tokenHash(token), actor.userId, actor.tenantId, ttlHours]
+  );
+  return { token, actor };
+}
+
 export async function login(email, password) {
   const result = await pool.query(
     `SELECT user_id, email, password_hash, tenant_id, role, tenant_name
@@ -28,24 +47,13 @@ export async function login(email, password) {
   const actor = result.rows[0];
   if (!actor || !(await verifyPassword(password, actor.password_hash))) return null;
 
-  const token = randomBytes(32).toString("base64url");
-  const ttlHours = Number(process.env.SESSION_TTL_HOURS ?? 12);
-  await pool.query(
-    `INSERT INTO auth_sessions (token_hash, user_id, tenant_id, expires_at)
-     VALUES ($1, $2, $3, now() + ($4 || ' hours')::interval)`,
-    [tokenHash(token), actor.user_id, actor.tenant_id, ttlHours]
-  );
-
-  return {
-    token,
-    actor: {
-      userId: actor.user_id,
-      email: actor.email,
-      tenantId: actor.tenant_id,
-      tenantName: actor.tenant_name,
-      role: actor.role
-    }
-  };
+  return issueSession({
+    userId: actor.user_id,
+    email: actor.email,
+    tenantId: actor.tenant_id,
+    tenantName: actor.tenant_name,
+    role: actor.role
+  });
 }
 
 export async function authenticateToken(token) {

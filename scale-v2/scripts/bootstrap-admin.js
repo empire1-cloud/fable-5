@@ -65,8 +65,19 @@ try {
     );
   }
 
+  // A tenant with no subscription row cannot write — the gate in
+  // src/subscription.js fails closed by design. A CLI-provisioned organisation
+  // is owner-operated rather than a customer, so it gets an active plan instead
+  // of a trial that would quietly expire under the founder.
+  await client.query(
+    `INSERT INTO subscriptions (tenant_id, status, plan_key, seats)
+     SELECT $1, 'active', 'scale', 25
+      WHERE NOT EXISTS (SELECT 1 FROM subscriptions WHERE tenant_id = $1)`,
+    [tenant.rows[0].id]
+  );
+
   await client.query("COMMIT");
-  console.log(`Bootstrapped ${email} as OWNER of ${tenantName} with ${pools.length} resource pools.`);
+  console.log(`Bootstrapped ${email} as OWNER of ${tenantName} with ${pools.length} resource pools and an active plan.`);
 } catch (error) {
   await client.query("ROLLBACK");
   throw error;
