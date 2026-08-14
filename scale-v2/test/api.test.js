@@ -581,7 +581,13 @@ test("subscription: a new org reports an active trial and its plans", async () =
   assert.equal(sub.body.canWrite, true);
   assert.equal(sub.body.canRead, true);
   assert.ok(sub.body.trialDaysRemaining > 0 && sub.body.trialDaysRemaining <= 14);
-  assert.ok(Array.isArray(sub.body.plans) && sub.body.plans.length >= 3, "plans are advertised for upgrade");
+  assert.ok(Array.isArray(sub.body.catalog) && sub.body.catalog.length >= 4, "plans are advertised for upgrade");
+  assert.ok(!sub.body.catalog.some((p) => p.key === "trial"), "the trial is not sold");
+  // Usage is reported, not only enforced — the upgrade case should be visible
+  // before a refusal makes it.
+  assert.equal(sub.body.usage.seats.used, 1, "the founder is the first seat");
+  assert.equal(sub.body.usage.nodes.used, 0, "a new organisation runs no market node yet");
+  assert.equal(sub.body.usage.nodes.allowed, true);
 });
 
 test("expired trial goes READ-ONLY: reads still work, writes are refused 402", async () => {

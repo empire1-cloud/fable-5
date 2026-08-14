@@ -5,45 +5,77 @@
  * question "what may this tenant do right now?" is decided in one tested place
  * rather than re-derived at each call site.
  *
- * The doctrine that shapes this file: an expired trial goes READ-ONLY, it does
- * not delete. Nothing a tenant recorded is destroyed or hidden because they
- * stopped paying — evidence, canon and receipts stay readable. Only new writes
- * are refused. WE EVOLVE, NEVER DELETE applies to customers too.
+ * WHY A PLATFORM FEE AND NOT PER SEAT
+ * FABLE-5's premise is that agents do the work, so a successful customer
+ * deliberately runs with few humans. Charging per seat would mean earning less
+ * the better the product works — billing for the very thing it removes. The
+ * meter is instead the **active market node**: this system's own unit of
+ * company expansion. When a customer replicates a validated genome into a new
+ * market, they grow and so does the bill. Seats become a limit, not the meter.
+ *
+ * WHAT AN EXPIRED PLAN DOES
+ * It goes READ-ONLY. Nothing a tenant recorded is destroyed or hidden because
+ * they stopped paying — evidence, canon and receipts stay readable; only new
+ * writes are refused. WE EVOLVE, NEVER DELETE applies to customers too.
  */
 
 export const TRIAL_DAYS = 14;
 
-/** Per-seat tiers. seats is the billable unit; limits gate what a plan opens. */
+/** Currency for every published price. Stripe amounts are minor units. */
+export const CURRENCY = "EUR";
+
+/** Annual billing bills 10 months for 12 — cash up front, and it materially
+ *  reduces churn versus monthly. */
+export const ANNUAL_MONTHS_CHARGED = 10;
+
 export const PLANS = Object.freeze({
   trial: {
     key: "trial",
     name: "Trial",
-    pricePerSeatMonthly: 0,
-    maxSeats: 5,
+    platformMonthly: 0,
+    includedSeats: 3,
+    includedNodes: 1,
+    // A trial shows the whole product. Discovering a locked feature after
+    // committing real work to the system is a worse experience than paying.
     features: ["control_plane", "evidence", "genomes", "market_nodes", "replication"],
   },
-  starter: {
-    key: "starter",
-    name: "Starter",
-    pricePerSeatMonthly: 49,
-    maxSeats: 5,
-    features: ["control_plane", "evidence", "genomes"],
-  },
-  growth: {
-    key: "growth",
-    name: "Growth",
-    pricePerSeatMonthly: 99,
-    maxSeats: 25,
+  founding: {
+    key: "founding",
+    name: "Founding",
+    platformMonthly: 299,
+    includedSeats: 3,
+    includedNodes: 1,
     features: ["control_plane", "evidence", "genomes", "market_nodes"],
   },
-  scale: {
-    key: "scale",
-    name: "Scale",
-    pricePerSeatMonthly: 199,
-    maxSeats: 500,
+  operator: {
+    key: "operator",
+    name: "Operator",
+    platformMonthly: 999,
+    includedSeats: 10,
+    includedNodes: 3,
+    features: ["control_plane", "evidence", "genomes", "market_nodes"],
+  },
+  empire: {
+    key: "empire",
+    name: "Empire",
+    platformMonthly: 2999,
+    includedSeats: 25,
+    includedNodes: 10,
     features: ["control_plane", "evidence", "genomes", "market_nodes", "replication"],
   },
+  enterprise: {
+    key: "enterprise",
+    name: "Enterprise",
+    // null, not 0 — "priced on conversation", never rendered as free.
+    platformMonthly: null,
+    includedSeats: 1000,
+    includedNodes: 1000,
+    features: ["control_plane", "evidence", "genomes", "market_nodes", "replication", "sso", "audit_export"],
+  },
 });
+
+/** Each active market node beyond the plan's included allowance. */
+export const EXTRA_NODE_MONTHLY = 199;
 
 /** Statuses that permit writing. past_due still writes — a failed card should
  *  not instantly freeze a paying customer's company; it becomes read-only only
@@ -54,12 +86,22 @@ export function getPlan(planKey) {
   return PLANS[planKey] ?? null;
 }
 
+/** Monthly-equivalent and billed totals, including any extra nodes. Returns
+ *  null pricing for Enterprise rather than inventing a number. */
+export function priceFor(planKey, { extraNodes = 0, interval = "monthly" } = {}) {
+  const plan = getPlan(planKey);
+  if (!plan) return null;
+  if (plan.platformMonthly === null) {
+    return { planKey, interval, currency: CURRENCY, monthly: null, billed: null, custom: true };
+  }
+  const monthly = plan.platformMonthly + Math.max(0, extraNodes) * EXTRA_NODE_MONTHLY;
+  const billed = interval === "annual" ? monthly * ANNUAL_MONTHS_CHARGED : monthly;
+  return { planKey, interval, currency: CURRENCY, monthly, billed, custom: false };
+}
+
 /**
  * The single access verdict. Shaped like every other gate in this system: a
  * boolean plus the reason, so a refusal can always explain itself.
- *
- * @param {object|null} subscription row from `subscriptions`, or null
- * @param {Date} now
  */
 export function accessVerdict(subscription, now = new Date()) {
   if (!subscription) {
@@ -121,20 +163,59 @@ export function hasFeature(subscription, featureKey, now = new Date()) {
   return Boolean(verdict.plan?.features.includes(featureKey));
 }
 
-/** Seat limits are enforced on invite, not silently exceeded and billed later. */
+/** Seats are a limit, not the meter — enforced on invite rather than silently
+ *  exceeded and billed later. */
 export function seatVerdict(subscription, currentMemberCount) {
   const plan = getPlan(subscription?.plan_key);
-  if (!plan) return { allowed: false, reason: "No plan on this subscription." };
-  const limit = Math.min(subscription.seats ?? plan.maxSeats, plan.maxSeats);
+  if (!plan) return { allowed: false, limit: 0, reason: "No plan on this subscription." };
+  const limit = plan.includedSeats;
   if (currentMemberCount >= limit) {
     return {
       allowed: false,
-      reason: `Seat limit reached (${currentMemberCount}/${limit} on ${plan.name}). Add seats or move to a larger plan.`,
+      limit,
+      reason: `Seat limit reached (${currentMemberCount}/${limit} on ${plan.name}). Move to a larger plan to add people.`,
     };
   }
-  return { allowed: true, reason: `${currentMemberCount + 1}/${limit} seats used.` };
+  return { allowed: true, limit, reason: `${currentMemberCount + 1}/${limit} seats used.` };
+}
+
+/**
+ * Market nodes are the billable meter. Beyond the included allowance a tenant
+ * must have bought capacity (`extra_nodes`); the refusal names the price rather
+ * than silently accruing a charge nobody agreed to.
+ */
+export function nodeVerdict(subscription, currentActiveNodes) {
+  const plan = getPlan(subscription?.plan_key);
+  if (!plan) return { allowed: false, limit: 0, reason: "No plan on this subscription." };
+  const limit = plan.includedNodes + Math.max(0, subscription.extra_nodes ?? 0);
+  if (currentActiveNodes >= limit) {
+    return {
+      allowed: false,
+      limit,
+      reason: `Active market node limit reached (${currentActiveNodes}/${limit} on ${plan.name}). Add capacity at ${EXTRA_NODE_MONTHLY} ${CURRENCY}/month per node, or move to a larger plan.`,
+    };
+  }
+  return { allowed: true, limit, reason: `${currentActiveNodes + 1}/${limit} active nodes used.` };
 }
 
 export function trialEndsAt(from = new Date()) {
   return new Date(from.getTime() + TRIAL_DAYS * 86_400_000);
+}
+
+/** Public catalog shape for the pricing page and the upgrade screen. */
+export function publicCatalog() {
+  return Object.values(PLANS)
+    .filter((p) => p.key !== "trial")
+    .map((p) => ({
+      key: p.key,
+      name: p.name,
+      currency: CURRENCY,
+      monthly: p.platformMonthly,
+      annualBilled: p.platformMonthly === null ? null : p.platformMonthly * ANNUAL_MONTHS_CHARGED,
+      includedSeats: p.includedSeats,
+      includedNodes: p.includedNodes,
+      extraNodeMonthly: EXTRA_NODE_MONTHLY,
+      features: p.features,
+      custom: p.platformMonthly === null,
+    }));
 }

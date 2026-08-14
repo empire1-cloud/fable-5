@@ -42,8 +42,8 @@ import {
 import { evaluateIntentToken } from "./domain/spend.js";
 import { EvidenceTransitionError } from "./domain/evidence.js";
 import { createOrganisation } from "./signup.js";
-import { subscriptionState, requireWriteAccess } from "./subscription.js";
-import { PLANS } from "./domain/plans.js";
+import { subscriptionState, requireWriteAccess, usageFor } from "./subscription.js";
+import { publicCatalog } from "./domain/plans.js";
 import { loginThrottle, signupThrottle, recordAttempt, clientAddress, pruneAttempts } from "./throttle.js";
 
 const app = express();
@@ -146,6 +146,7 @@ app.post("/api/auth/signup", async (req, res, next) => {
 app.get("/api/subscription", requireAuth(), async (req, res, next) => {
   try {
     const { subscription, verdict } = await subscriptionState(req.actor.tenantId);
+    const usage = subscription ? await usageFor(req.actor.tenantId, subscription) : null;
     res.json({
       status: verdict.status,
       planKey: verdict.planKey,
@@ -155,9 +156,13 @@ app.get("/api/subscription", requireAuth(), async (req, res, next) => {
       reason: verdict.reason,
       trialDaysRemaining: verdict.trialDaysRemaining ?? null,
       trialEndsAt: subscription?.trial_ends_at ?? null,
-      seats: subscription?.seats ?? null,
+      billingInterval: subscription?.billing_interval ?? null,
+      extraNodes: subscription?.extra_nodes ?? 0,
       currentPeriodEnd: subscription?.current_period_end ?? null,
-      plans: Object.values(PLANS)
+      // Consumption against the limits, so the upgrade case is visible before
+      // a refusal makes it.
+      usage,
+      catalog: publicCatalog()
     });
   } catch (error) {
     next(error);

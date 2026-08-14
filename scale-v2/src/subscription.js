@@ -7,7 +7,7 @@
  * forgetting to opt in fails closed instead of open.
  */
 import { withTenant } from "./db.js";
-import { accessVerdict } from "./domain/plans.js";
+import { accessVerdict, seatVerdict, nodeVerdict, priceFor } from "./domain/plans.js";
 
 /**
  * Must run inside withTenant. `subscriptions` is under FORCE ROW LEVEL
@@ -32,6 +32,30 @@ export async function loadSubscription(tenantId) {
 export async function subscriptionState(tenantId) {
   const subscription = await loadSubscription(tenantId);
   return { subscription, verdict: accessVerdict(subscription) };
+}
+
+/**
+ * Current consumption against the plan's limits. Reported rather than only
+ * enforced, so a customer can see where they stand before a refusal tells
+ * them — a limit that is invisible until it blocks you is a bad limit.
+ */
+export async function usageFor(tenantId, subscription) {
+  const { members, activeNodes } = await withTenant(tenantId, async (client) => {
+    const [m, n] = await Promise.all([
+      client.query(`SELECT count(*)::int AS c FROM memberships WHERE is_active = true`),
+      client.query(`SELECT count(*)::int AS c FROM market_nodes WHERE status IN ('Active','Scaling')`),
+    ]);
+    return { members: m.rows[0].c, activeNodes: n.rows[0].c };
+  });
+
+  return {
+    seats: { used: members, ...seatVerdict(subscription, members) },
+    nodes: { used: activeNodes, ...nodeVerdict(subscription, activeNodes) },
+    price: priceFor(subscription?.plan_key, {
+      extraNodes: subscription?.extra_nodes ?? 0,
+      interval: subscription?.billing_interval ?? "monthly",
+    }),
+  };
 }
 
 /** Methods that change state. GET/HEAD/OPTIONS stay open for any tenant with a

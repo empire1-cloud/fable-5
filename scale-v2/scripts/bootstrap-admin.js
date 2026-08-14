@@ -71,7 +71,7 @@ try {
   // of a trial that would quietly expire under the founder.
   await client.query(
     `INSERT INTO subscriptions (tenant_id, status, plan_key, seats)
-     SELECT $1, 'active', 'scale', 25
+     SELECT $1, 'active', 'empire', 25
       WHERE NOT EXISTS (SELECT 1 FROM subscriptions WHERE tenant_id = $1)`,
     [tenant.rows[0].id]
   );
