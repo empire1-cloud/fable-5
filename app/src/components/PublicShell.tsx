@@ -5,6 +5,7 @@ import { useAuth } from "../auth/AuthProvider";
 const NAV: { to: string; label: string }[] = [
   { to: "/how-it-works", label: "How it works" },
   { to: "/proof", label: "Proof" },
+  { to: "/pricing", label: "Pricing" },
   { to: "/founding-access", label: "Founding access" },
   { to: "/trust", label: "Trust" },
 ];
@@ -83,8 +84,10 @@ export default function PublicShell({
             <div className="pub-foot-head">NAVIGATE</div>
             <a href={href("/how-it-works")}>How it works</a>
             <a href={href("/proof")}>Proof</a>
+            <a href={href("/pricing")}>Pricing</a>
             <a href={href("/founding-access")}>Founding access</a>
             <a href={href("/trust")}>Trust</a>
+            <a href={href("/signup")}>Start free trial</a>
             <a href={href("/sign-in")}>Sign in</a>
           </nav>
           <div>

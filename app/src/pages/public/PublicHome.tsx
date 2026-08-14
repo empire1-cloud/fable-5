@@ -699,7 +699,7 @@ export default function PublicHome() {
           it on your own company first.
         </p>
         <div className="pub-hero-actions">
-          <a className="pub-btn pub-btn--gold" href={href("/founding-access")}>
+          <a className="pub-btn pub-btn--gold" href={href("/signup")}>
             Run your company
           </a>
           <a className="pub-btn pub-btn--ghost" href={href("/how-it-works")}>

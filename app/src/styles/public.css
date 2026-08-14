@@ -1604,3 +1604,86 @@
     animation: none !important;
   }
 }
+
+/* ── pricing ───────────────────────────────────────────────────────── */
+.pub-billing-toggle {
+  display: inline-flex;
+  border: 1px solid var(--pub-line);
+  margin: 0 0 28px;
+}
+.pub-toggle {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: transparent;
+  color: var(--pub-ink-faint);
+  border: 0;
+  padding: 10px 16px;
+  cursor: pointer;
+}
+.pub-toggle--on {
+  background: var(--pub-gold);
+  color: var(--pub-gold-ink);
+}
+
+.pub-grid--plans {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 16px;
+  align-items: stretch;
+}
+.pub-plan {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pub-plan-name {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--pub-gold);
+  margin: 0;
+}
+.pub-plan-price {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.pub-plan-amount {
+  font-size: clamp(26px, 3vw, 34px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.pub-plan-per {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--pub-ink-faint);
+}
+.pub-plan-note {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  line-height: 1.6;
+  color: var(--pub-ink-faint);
+}
+.pub-plan-list {
+  list-style: none;
+  margin: 6px 0 auto;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.pub-plan-list li::before {
+  content: "· ";
+  color: var(--pub-gold);
+}
+.pub-plan .pub-btn {
+  margin-top: 14px;
+  text-align: center;
+}
+.pub-plan--custom {
+  border-style: dashed;
+}

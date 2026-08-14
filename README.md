@@ -58,6 +58,13 @@ record until someone resolves it with a stated reason.
 
 ![Escalation queue showing a persisted Engine 00 gate refusal awaiting resolution](docs/screenshots/03-escalations.png)
 
+**Pricing and signup** — a stranger creates an organisation self-serve and starts a 14-day
+trial of the whole product. The meter is the active market node, not the seat: agents do the
+work here, so charging per head would bill for the thing the system removes. When a trial
+ends the control plane goes read-only — everything recorded stays readable.
+
+![Pricing — platform fee metered on active market nodes](docs/screenshots/08-pricing.png)
+
 ## Repository layout
 
 | Path | What it is |

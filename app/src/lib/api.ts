@@ -112,6 +112,51 @@ export interface MeResult {
   expiresAt: string;
   issuedAt: string;
 }
+export interface SignupResult extends AuthSession {
+  trial: { endsAt: string; days: number };
+}
+
+export interface ApiPlan {
+  key: string;
+  name: string;
+  currency: string;
+  /** null means priced on conversation — never render null as free. */
+  monthly: number | null;
+  annualBilled: number | null;
+  includedSeats: number;
+  includedNodes: number;
+  extraNodeMonthly: number;
+  features: string[];
+  custom: boolean;
+}
+
+export interface ApiLimit {
+  used: number;
+  allowed: boolean;
+  limit: number;
+  reason: string;
+}
+
+export interface ApiSubscription {
+  status: string;
+  planKey: string | null;
+  plan: { key: string; name: string; includedSeats: number; includedNodes: number; features: string[] } | null;
+  canWrite: boolean;
+  canRead: boolean;
+  reason: string;
+  trialDaysRemaining: number | null;
+  trialEndsAt: string | null;
+  billingInterval: string | null;
+  extraNodes: number;
+  currentPeriodEnd: string | null;
+  usage: {
+    seats: ApiLimit;
+    nodes: ApiLimit;
+    price: { currency: string; monthly: number | null; billed: number | null; custom: boolean } | null;
+  } | null;
+  catalog: ApiPlan[];
+}
+
 export interface HealthState {
   status: string;
   service: string;
@@ -265,7 +310,12 @@ export const api = {
   health: () => request<HealthState>("GET", "/api/health"),
   auth: {
     login: (body: { email: string; password: string }) => request<AuthSession>("POST", "/api/auth/login", body),
+    signup: (body: { organisationName: string; email: string; password: string }) =>
+      request<SignupResult>("POST", "/api/auth/signup", body),
     me: () => request<MeResult>("GET", "/api/auth/me"),
+  },
+  subscription: {
+    get: () => request<ApiSubscription>("GET", "/api/subscription"),
   },
   opportunities: {
     list: () => request<ApiOpportunity[]>("GET", "/api/opportunities"),

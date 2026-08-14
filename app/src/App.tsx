@@ -20,6 +20,8 @@ import Proof from './pages/public/Proof';
 import FoundingAccess from './pages/public/FoundingAccess';
 import Trust from './pages/public/Trust';
 import { Login } from './pages/Login';
+import { Signup } from './pages/Signup';
+import Pricing from './pages/public/Pricing';
 import Decisions from './pages/control/Decisions';
 import Escalations from './pages/control/Escalations';
 import Settings from './pages/control/Settings';
@@ -36,6 +38,10 @@ function publicPage(path: string): React.ReactNode {
       return <Trust />;
     case '/sign-in':
       return <Login />;
+    case '/signup':
+      return <Signup />;
+    case '/pricing':
+      return <Pricing />;
     case '/':
     default:
       return <PublicHome />;
@@ -85,7 +91,9 @@ export default function App() {
     path === '/proof' ||
     path === '/founding-access' ||
     path === '/trust' ||
-    path === '/sign-in';
+    path === '/sign-in' ||
+    path === '/signup' ||
+    path === '/pricing';
 
   return (
     <AuthProvider>

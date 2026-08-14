@@ -13,6 +13,8 @@ export const PUBLIC_PATHS = [
   "/founding-access",
   "/trust",
   "/sign-in",
+  "/signup",
+  "/pricing",
 ] as const;
 
 /** Control-plane workspaces a signed-in user may open. */
