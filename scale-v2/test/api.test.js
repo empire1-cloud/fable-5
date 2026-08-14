@@ -681,6 +681,57 @@ test("login throttle locks an account after repeated failures, then reports 429"
   assert.equal(correct.status, 429);
 });
 
+test("billing is honestly gated when Stripe is not configured", async () => {
+  const token = await loginToken();
+
+  const status = await req("GET", "/api/billing/status", { token });
+  assert.equal(status.status, 200);
+  // The suite runs without STRIPE_SECRET_KEY, which is the state this asserts.
+  assert.equal(status.body.configured, false);
+  assert.match(status.body.reason, /not configured/i);
+  assert.match(status.body.reason, /no charge can be created/i);
+
+  // Checkout must refuse rather than pretend. 503, not a fake session.
+  const checkout = await req("POST", "/api/billing/checkout", {
+    token,
+    body: { planKey: "founding", interval: "monthly" }
+  });
+  assert.equal(checkout.status, 503, "an unconfigured deployment cannot create a charge");
+  assert.ok(!checkout.body.url, "no checkout URL is invented");
+});
+
+test("the webhook refuses an unsigned body", async () => {
+  // Without signature verification anyone reaching this endpoint could grant
+  // themselves a plan by POSTing JSON.
+  const unsigned = await req("POST", "/api/billing/webhook", {
+    body: { type: "customer.subscription.updated", data: { object: {} } }
+  });
+  assert.equal(unsigned.status, 400);
+  assert.match(String(unsigned.body.reason ?? ""), /stripe-signature/i);
+});
+
+test("billing stays reachable for a read-only tenant so they can pay to return", async () => {
+  const suffix = randomUUID().slice(0, 8);
+  await resetAuthAttempts();
+  const created = await req("POST", "/api/auth/signup", {
+    body: { organisationName: `Lapsed Co ${suffix}`, email: `lapsed-${suffix}@example.com`, password: "a-long-enough-passphrase" }
+  });
+  const token = created.body.token;
+  await adminQuery(`UPDATE subscriptions SET trial_ends_at = now() - interval '1 day' WHERE tenant_id = $1`,
+    [created.body.actor.tenantId]);
+
+  // Ordinary writes are refused...
+  const blocked = await req("POST", "/api/evidence", { token, body: { claim: "after expiry" } });
+  assert.equal(blocked.status, 402);
+
+  // ...but billing is not, or a lapsed customer could never come back.
+  const checkout = await req("POST", "/api/billing/checkout", {
+    token, body: { planKey: "founding", interval: "monthly" }
+  });
+  assert.notEqual(checkout.status, 402, "the write gate must not block the route that ends read-only mode");
+  assert.equal(checkout.status, 503, "it refuses only because Stripe is unconfigured here");
+});
+
 async function resetAuthAttempts() {
   await adminQuery("DELETE FROM auth_attempts");
 }

@@ -157,6 +157,13 @@ export interface ApiSubscription {
   catalog: ApiPlan[];
 }
 
+export interface ApiBillingStatus {
+  configured: boolean;
+  webhookConfigured: boolean;
+  currency: string;
+  reason: string;
+}
+
 export interface HealthState {
   status: string;
   service: string;
@@ -316,6 +323,11 @@ export const api = {
   },
   subscription: {
     get: () => request<ApiSubscription>("GET", "/api/subscription"),
+  },
+  billing: {
+    status: () => request<ApiBillingStatus>("GET", "/api/billing/status"),
+    checkout: (body: { planKey: string; interval: "monthly" | "annual"; extraNodes?: number; returnUrl?: string }) =>
+      request<{ id: string; url: string }>("POST", "/api/billing/checkout", body),
   },
   opportunities: {
     list: () => request<ApiOpportunity[]>("GET", "/api/opportunities"),

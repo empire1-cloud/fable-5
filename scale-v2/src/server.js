@@ -44,6 +44,7 @@ import { EvidenceTransitionError } from "./domain/evidence.js";
 import { createOrganisation } from "./signup.js";
 import { subscriptionState, requireWriteAccess, usageFor } from "./subscription.js";
 import { publicCatalog } from "./domain/plans.js";
+import { billingStatus, createCheckoutSession, handleWebhook } from "./billing.js";
 import { loginThrottle, signupThrottle, recordAttempt, clientAddress, pruneAttempts } from "./throttle.js";
 
 const app = express();
@@ -66,6 +67,25 @@ const publicDir = path.resolve(__dirname, "../public");
 
 app.disable("x-powered-by");
 app.use(cors({ origin: appOrigin, credentials: false }));
+
+/*
+ * The Stripe webhook must be registered BEFORE express.json().
+ *
+ * Signature verification hashes the exact bytes Stripe sent; a parsed and
+ * re-serialised body will not match, and every event would be rejected. This
+ * route therefore takes the raw buffer, and only this route.
+ */
+app.post("/api/billing/webhook", express.raw({ type: "application/json" }), async (req, res, next) => {
+  const signature = req.headers["stripe-signature"];
+  if (!signature) return res.status(400).json({ error: "REFUSED", reason: "Missing stripe-signature header" });
+  try {
+    const result = await handleWebhook(req.body, signature);
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.use(express.json({ limit: "2mb" }));
 app.use((req, res, next) => {
   req.correlationId = req.headers["x-correlation-id"] || crypto.randomUUID();
@@ -164,6 +184,33 @@ app.get("/api/subscription", requireAuth(), async (req, res, next) => {
       usage,
       catalog: publicCatalog()
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/* Billing is exempt from the write gate — a read-only tenant must still be
+ * able to pay to come back. Status is public-ish (auth required, but it works
+ * while read-only) so the UI can say what is true instead of offering a
+ * checkout button that cannot work. */
+app.get("/api/billing/status", requireAuth(), (_req, res) => {
+  res.json(billingStatus());
+});
+
+app.post("/api/billing/checkout", requireAuth(), async (req, res, next) => {
+  try {
+    const planKey = String(req.body?.planKey ?? "");
+    const interval = String(req.body?.interval ?? "monthly");
+    const extraNodes = Number(req.body?.extraNodes ?? 0) || 0;
+    if (!planKey) return res.status(400).json({ error: "planKey is required" });
+
+    const session = await createCheckoutSession(req.actor, {
+      planKey,
+      interval,
+      extraNodes,
+      returnUrl: req.body?.returnUrl,
+    });
+    res.json(session);
   } catch (error) {
     next(error);
   }

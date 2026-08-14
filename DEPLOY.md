@@ -156,3 +156,75 @@ Docker CLI but no daemon, so `docker build` could not run. The Dockerfile is
 straightforward (`node:22-slim`, `npm ci --omit=dev`, copy source, non-root
 user) and the command it runs is the one tested above — but the first Render
 build is the first time the image is actually assembled. Watch that build log.
+
+---
+
+## Billing (Stripe)
+
+Billing is optional and honestly gated. With no key the product still runs:
+trials work, the write gate holds, and checkout refuses with a stated reason
+rather than inventing a session.
+
+### The live catalog
+
+These Products and Prices already exist in the Stripe account
+`acct_1U4Q28DnczZ1gSae` (livemode). Nothing in the code references these IDs —
+prices are resolved by metadata — but they are recorded here so the account is
+auditable from the repository.
+
+| Plan | Interval | Price ID | Amount |
+|---|---|---|---|
+| Founding | monthly | `price_1U4QGmDnczZ1gSaeuY3QdzWE` | €299 |
+| Founding | annual | `price_1U4QGvDnczZ1gSae2gdRgTd7` | €2,990 |
+| Operator | monthly | `price_1U4QH5DnczZ1gSaejsCsKaMd` | €999 |
+| Operator | annual | `price_1U4QHEDnczZ1gSaepM7Ynzov` | €9,990 |
+| Empire | monthly | `price_1U4QHNDnczZ1gSaeqM5ynb4b` | €2,999 |
+| Empire | annual | `price_1U4QHWDnczZ1gSaeEKkqTyEV` | €29,990 |
+| Additional market node | monthly | `price_1U4QHeDnczZ1gSaeDJT0Wiqt` | €199 per node |
+
+Each price carries `metadata.plan_key` and `metadata.billing_interval`. That
+metadata is how the server finds them — **do not remove it**, and if you create
+a replacement price, archive the old one. Two active prices matching the same
+plan and interval is an ambiguous charge, and checkout refuses rather than
+guessing which one you meant.
+
+### Turning it on
+
+```bash
+fly secrets set \
+  STRIPE_SECRET_KEY="sk_live_…" \
+  STRIPE_WEBHOOK_SECRET="whsec_…" \
+  --app fable5-control-plane
+```
+
+Then add the webhook endpoint in Stripe → Developers → Webhooks:
+
+```
+https://fable5-control-plane.fly.dev/api/billing/webhook
+```
+
+Subscribe it to: `checkout.session.completed`,
+`customer.subscription.created`, `customer.subscription.updated`,
+`customer.subscription.deleted`. Copy the signing secret into
+`STRIPE_WEBHOOK_SECRET`.
+
+To rehearse locally without touching live money, use test-mode keys and the
+Stripe CLI:
+
+```bash
+stripe listen --forward-to localhost:3001/api/billing/webhook
+```
+
+### Guards you should expect
+
+| Refusal | Meaning |
+|---|---|
+| `503` on checkout, "billing is not configured" | `STRIPE_SECRET_KEY` unset. Deliberate — no charge can be created. |
+| `503`, "Refusing to charge a price the product does not show" | Stripe's amount disagrees with `plans.js`. Fix one of them; do not sell until they match. |
+| `503`, "Multiple active Stripe prices match" | Duplicate prices for one plan. Archive the extras. |
+| `400`, "Missing stripe-signature header" | Something other than Stripe posted to the webhook. |
+| `503`, "refusing to trust an unverified webhook body" | `STRIPE_WEBHOOK_SECRET` unset. Without it, anyone reaching the endpoint could grant themselves a plan. |
+
+A completed payment activates the plan **only** via the signed webhook. The
+success page is a redirect, not proof of payment, and is never treated as
+evidence.
