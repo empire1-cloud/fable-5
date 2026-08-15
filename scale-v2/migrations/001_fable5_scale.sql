@@ -335,7 +335,15 @@ BEGIN
 END
 $rls$;
 
-GRANT CONNECT ON DATABASE fable5 TO fable5_app;
+-- current_database(), not a literal. A managed provider names the database
+-- whatever it likes (fable5_xyz on Render, railway on Railway); hardcoding
+-- 'fable5' made this migration fail everywhere except a local box that
+-- happened to use that name.
+DO $grant$
+BEGIN
+  EXECUTE format('GRANT CONNECT ON DATABASE %I TO fable5_app', current_database());
+END
+$grant$;
 GRANT USAGE ON SCHEMA public TO fable5_app;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO fable5_app;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO fable5_app;

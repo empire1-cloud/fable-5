@@ -302,6 +302,71 @@ a { color: var(--accent); }
 .snapshot-card { padding: 18px 20px; }
 .snapshot-num { font-size: 34px; font-weight: 700; color: var(--accent); line-height: 1; }
 .snapshot-num-of { font-size: 18px; color: var(--ink-50); font-weight: 500; }
+.snapshot-num--warn { color: var(--warn); }
+
+/* ── GOD MODE (00 OVERVIEW) — the whole company in one server-computed read ── */
+.godmode-pipeline {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 6px;
+  margin: 10px 0 14px;
+}
+.godmode-stage {
+  border: 1px solid var(--edge-soft);
+  padding: 10px 8px;
+  text-align: center;
+  opacity: 0.5;
+}
+.godmode-stage--live { opacity: 1; border-color: var(--accent); }
+.godmode-stage-num { font-size: 22px; font-weight: 700; color: var(--accent); line-height: 1; }
+.godmode-stage-name {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  letter-spacing: 0.06em;
+  color: var(--ink-50);
+  margin-top: 6px;
+  word-break: break-word;
+}
+.godmode-engines { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+.godmode-engine {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--edge-soft);
+  padding: 10px;
+  opacity: 0.55;
+}
+.godmode-engine--live { opacity: 1; border-color: var(--accent); }
+.godmode-engine-id { font-family: var(--mono); font-size: 16px; font-weight: 700; color: var(--accent); flex: none; }
+.godmode-engine-body { min-width: 0; }
+.godmode-engine-name { font-size: 12.5px; font-weight: 600; }
+.godmode-engine-count { font-family: var(--mono); font-size: 10px; color: var(--ink-50); margin-top: 2px; }
+.godmode-opp {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--edge-soft);
+}
+.godmode-opp:last-child { border-bottom: none; }
+.godmode-opp-score {
+  font-family: var(--mono);
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--accent);
+  flex: none;
+  min-width: 68px;
+}
+.godmode-opp-body { flex: 1; min-width: 0; }
+
+@media (max-width: 900px) {
+  .godmode-pipeline { grid-template-columns: repeat(4, 1fr); }
+  .godmode-engines { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 560px) {
+  .godmode-pipeline { grid-template-columns: repeat(2, 1fr); }
+  .godmode-engines { grid-template-columns: 1fr; }
+}
 .snapshot-note { font-size: 11.5px; color: var(--ink-55); margin-top: 8px; }
 
 .workspace-links { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
@@ -383,6 +448,7 @@ a { color: var(--accent); }
 .opportunity-title { font-size: 14.5px; font-weight: 600; }
 .opportunity-meta { font-family: var(--mono); font-size: 10.5px; color: var(--ink-50); margin-top: 3px; }
 .opportunity-caret { color: var(--accent); flex: none; }
+.escalation-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
 .opportunity-body { padding: 0 18px 18px; }
 .opportunity-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 6px; }
 .epi-tag { font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); border: 1px solid var(--edge-soft); padding: 1px 5px; margin-right: 6px; }
@@ -488,6 +554,10 @@ a { color: var(--accent); }
 .genome-field-key { font-family: var(--mono); font-size: 9.5px; color: var(--ink-50); text-transform: uppercase; letter-spacing: 0.05em; }
 .genome-field-val { color: var(--ink-80); }
 .genome-field-flag { font-family: var(--mono); font-size: 8.5px; color: var(--warn); letter-spacing: 0.08em; }
+/* Proven vs merely attached are different claims and must not look alike:
+   green only for evidence that actually cleared VERIFIED. */
+.genome-field-flag--proven { color: var(--ok, #5ad1a0); }
+.genome-field-flag--claimed { color: var(--warn); opacity: 0.95; }
 
 /* ── Allocation ───────────────────────────────────────────────────── */
 .alloc-sliders { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }

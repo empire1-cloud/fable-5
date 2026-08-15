@@ -1,65 +1,154 @@
 import React from 'react';
 import { href } from '../lib/router';
-import { useAppState } from '../state/AppState';
-import { systemSnapshot } from '../lib/selectors';
-import { Panel, Eyebrow } from '../components/ui';
+import { useDashboard } from '../state/DashboardData';
+import { summarize, toNumber } from '../lib/dashboard';
+import { ENGINE_MAP } from '../data/engines';
+import { Eyebrow, Badge, EmptyNote } from '../components/ui';
 import ExecutionRuntimeStatus from '../components/ExecutionRuntimeStatus';
 
+const VERDICT_TONE: Record<string, 'ok' | 'warn' | 'bad' | 'neutral'> = {
+  AUTHORIZE_EXPERIMENT: 'ok',
+  INVESTIGATE: 'warn',
+  WATCH: 'warn',
+  HOLD_FOR_EVIDENCE: 'bad',
+  REFUSE: 'bad',
+};
+
 export default function Home() {
-  const { state } = useAppState();
-  const snap = systemSnapshot(state);
+  // Shares the shell's single dashboard read — the strip above and this view
+  // must never disagree about the same company.
+  const { state } = useDashboard();
+  const data = state.status === 'ok' ? state.data : null;
+  const summary = data ? summarize(data) : null;
 
   return (
     <div className="page-stack">
       <section className="hero-panel">
-        <Eyebrow>SPEC · REV 2.0 · WE EVOLVE, NEVER DELETE</Eyebrow>
+        <Eyebrow>GOD MODE · EVERY ENGINE, EVERY RECORD, ONE READ</Eyebrow>
         <h1 className="hero-title">
-          FABLE-5 <span className="hero-slash">/</span> Autonomous Company Control Plane
+          GOD MODE <span className="hero-slash">/</span> {data?.tenant.name ?? 'your company'}
         </h1>
         <p className="hero-sub">
-          A governed, evidence-backed system that discovers opportunities, allocates resources,
-          manufactures companies, verifies reality, learns from every outcome, and replicates
-          validated systems across markets. Every workspace below is an operating surface.
-          Seeded records stay labeled as demo data; live Cofounder execution reports separately.
+          You can see everything. You still can't fake anything. Every number below is computed on the
+          server from your organisation's own records — and seeing them grants no power to skip a gate.
+          The evidence state machine refuses a skipped transition from this screen exactly as it does
+          from anywhere else.
         </p>
         <div className="hero-actions">
           <a className="btn btn--primary" href={href('/control/evidence')}>
             Open the Evidence Ledger →
           </a>
-          <a className="btn btn--ghost" href={href('/blueprint')}>
-            Inspect System Blueprint
+          <a className="btn btn--ghost" href={href('/control/escalations')}>
+            {data && data.openEscalations > 0 ? `${data.openEscalations} open escalation${data.openEscalations === 1 ? '' : 's'} →` : 'Escalation queue'}
           </a>
         </div>
       </section>
 
-      <ExecutionRuntimeStatus />
+      {state.status === 'loading' && (
+        <section className="panel">
+          <EmptyNote>Reading the whole company from the server…</EmptyNote>
+        </section>
+      )}
 
-      <section className="snapshot-grid">
-        <Panel label="ACTIVE OPPORTUNITIES" className="snapshot-card">
-          <div className="snapshot-num">{snap.activeOpportunities}</div>
-          <div className="snapshot-note">score ≥ 50 in the Opportunity Graph</div>
-        </Panel>
-        <Panel label="ACTIVE MISSIONS" className="snapshot-card">
-          <div className="snapshot-num">{snap.activeMissions}</div>
-          <div className="snapshot-note">seeded mission records; live execution is reported above</div>
-        </Panel>
-        <Panel label="PENDING VERIFICATION" className="snapshot-card">
-          <div className="snapshot-num">{snap.pendingVerification}</div>
-          <div className="snapshot-note">RECEIPTED, awaiting independent check</div>
-        </Panel>
-        <Panel label="COMPANY GENOMES" className="snapshot-card">
-          <div className="snapshot-num">{snap.genomeCount}</div>
-          <div className="snapshot-note">reusable, structured business blueprints</div>
-        </Panel>
-        <Panel label="MARKET NODES" className="snapshot-card">
-          <div className="snapshot-num">{snap.activeNodeCount}<span className="snapshot-num-of">/{snap.totalNodeCount}</span></div>
-          <div className="snapshot-note">active or scaling, out of all tracked nodes</div>
-        </Panel>
-        <Panel label="RESOURCE PRESSURE" className="snapshot-card">
-          <div className="snapshot-num">{Math.round(snap.resourcePressure * 100)}<span className="snapshot-num-of">%</span></div>
-          <div className="snapshot-note">tightest constraint: {snap.tightestResource}</div>
-        </Panel>
-      </section>
+      {state.status === 'error' && (
+        <section className="panel">
+          <EmptyNote>
+            Could not load the company view: {state.error} — nothing is shown rather than showing
+            numbers we cannot stand behind.
+          </EmptyNote>
+        </section>
+      )}
+
+      {data && summary && (
+        <>
+          <section className="snapshot-grid">
+            <div className="panel snapshot-card">
+              <div className="panel-label">EVIDENCE RECORDS</div>
+              <div className="snapshot-num">{summary.totalEvidence}</div>
+              <div className="snapshot-note">live records across all eight states</div>
+            </div>
+            <div className="panel snapshot-card">
+              <div className="panel-label">RANKED OPPORTUNITIES</div>
+              <div className="snapshot-num">{summary.rankedOpportunities}</div>
+              <div className="snapshot-note">scored by Engine 00, highest first</div>
+            </div>
+            <div className="panel snapshot-card">
+              <div className="panel-label">OPEN ESCALATIONS</div>
+              <div className={`snapshot-num ${summary.openEscalations > 0 ? 'snapshot-num--warn' : ''}`}>
+                {summary.openEscalations}
+              </div>
+              <div className="snapshot-note">
+                {summary.openEscalations > 0 ? 'refused gates awaiting a stated reason' : 'no refused gate is unresolved'}
+              </div>
+            </div>
+            <div className="panel snapshot-card">
+              <div className="panel-label">CANONIZED</div>
+              <div className="snapshot-num">{summary.canonized}</div>
+              <div className="snapshot-note">reached the terminal state — proven, not claimed</div>
+            </div>
+          </section>
+
+          <section className="panel">
+            <div className="panel-label panel-label--accent">EVIDENCE PIPELINE · the funnel, not a progress bar</div>
+            <div className="godmode-pipeline">
+              {summary.pipeline.map(({ state: s, count }) => (
+                <div key={s} className={`godmode-stage ${count > 0 ? 'godmode-stage--live' : ''}`}>
+                  <div className="godmode-stage-num">{count}</div>
+                  <div className="godmode-stage-name">{s}</div>
+                </div>
+              ))}
+            </div>
+            <p className="muted" style={{ marginBottom: 0 }}>
+              A record only moves right when the gate for the next state is satisfied. Nothing on this
+              screen can advance one — GOD MODE is omniscience, not permission.
+            </p>
+          </section>
+
+          <section className="panel">
+            <div className="panel-label panel-label--accent">ENGINE LOAD · work items per engine</div>
+            <div className="godmode-engines">
+              {summary.engineLoad.map(({ id, count }) => {
+                const engine = ENGINE_MAP[id];
+                return (
+                  <div key={id} className={`godmode-engine ${count > 0 ? 'godmode-engine--live' : ''}`}>
+                    <div className="godmode-engine-id">{id}</div>
+                    <div className="godmode-engine-body">
+                      <div className="godmode-engine-name">{engine?.name ?? `Engine ${id}`}</div>
+                      <div className="godmode-engine-count">
+                        {count} {count === 1 ? 'work item' : 'work items'}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          <section className="panel">
+            <div className="panel-label panel-label--accent">RANKED OPPORTUNITIES · Engine 00 arithmetic</div>
+            {data.opportunities.length === 0 ? (
+              <EmptyNote>
+                No opportunity has been ranked yet. An honest empty state beats an invented number.
+              </EmptyNote>
+            ) : (
+              data.opportunities.map((o) => (
+                <div key={o.id} className="godmode-opp">
+                  <div className="godmode-opp-score">{toNumber(o.ranking_score).toFixed(2)}</div>
+                  <div className="godmode-opp-body">
+                    <div className="opportunity-title">{o.title}</div>
+                    <div className="opportunity-meta">
+                      status {o.status} · ranked {new Date(o.created_at).toLocaleDateString()}
+                    </div>
+                  </div>
+                  <Badge tone={VERDICT_TONE[o.ranking_verdict] ?? 'neutral'}>{o.ranking_verdict}</Badge>
+                </div>
+              ))
+            )}
+          </section>
+        </>
+      )}
+
+      <ExecutionRuntimeStatus />
 
       <section className="workspace-links">
         <a className="workspace-card" href={href('/blueprint')}>
@@ -77,15 +166,15 @@ export default function Home() {
           <div className="workspace-name">Evidence &amp; Verification</div>
           <div className="workspace-desc">The formal state machine. Nothing is shown as verified without the evidence to support it.</div>
         </a>
-        <a className="workspace-card" href={href('/genomes')}>
+        <a className="workspace-card" href={href('/control/decisions')}>
           <div className="workspace-num">04</div>
-          <div className="workspace-name">Company Genome</div>
-          <div className="workspace-desc">Structured, reusable business blueprints and their replication readiness.</div>
+          <div className="workspace-name">Decisions</div>
+          <div className="workspace-desc">Real decision rows written the moment Engine 00 authorizes an opportunity.</div>
         </a>
-        <a className="workspace-card" href={href('/allocation')}>
+        <a className="workspace-card" href={href('/control/escalations')}>
           <div className="workspace-num">05</div>
-          <div className="workspace-name">Capital &amp; Resource Allocation</div>
-          <div className="workspace-desc">Where the next unit of scarce resource goes — and why. No real spend without a token.</div>
+          <div className="workspace-name">Escalations</div>
+          <div className="workspace-desc">Refused gates, retained as negative intelligence until resolved with a stated reason.</div>
         </a>
         <a className="workspace-card" href={href('/governance')}>
           <div className="workspace-num">06</div>

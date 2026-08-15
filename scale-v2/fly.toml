@@ -1,0 +1,56 @@
+# Fly.io config for the FABLE-5 control plane.
+#
+# Lives in scale-v2/ so the Docker build context is this directory — the
+# Dockerfile copies package.json, src, migrations, scripts and public from the
+# context root.
+#
+# Deploy from this directory. See ../DEPLOY.md for the full sequence, including
+# the two URLs this app needs (admin for migrations, fable5_app for runtime).
+
+app = "fable5-control-plane"
+
+# US East. The founder and the first customers are in the United States, so
+# records live where the buyers are.
+#
+# This is a data-residency decision, not a latency one, and it is worth
+# revisiting the day a European customer is real rather than hypothetical — an
+# EU buyer of governance tooling will ask where their records sit. (The DACH
+# genome in this repo is demo fixture content, not a go-to-market plan; do not
+# read strategy out of it.)
+#
+# Change this BEFORE the first customer either way. Moving a database with live
+# tenants is painful; moving an empty one is a redeploy, and the Postgres
+# volume must be created in the same region — see DEPLOY.md.
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "3001"
+  SESSION_TTL_HOURS = "12"
+
+[http_service]
+  internal_port = 3001
+  force_https = true
+  # Keep at least one machine running. Scaling to zero means the first visitor
+  # after an idle period waits for a cold start, and a control plane that
+  # answers slowly reads as a control plane that is down.
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.checks]
+    # /api/health fails closed when PostgreSQL is unreachable, so this is a
+    # real dependency check and not just a liveness ping.
+    [[http_service.checks.http]]
+      interval = "30s"
+      timeout = "5s"
+      grace_period = "20s"
+      method = "GET"
+      path = "/api/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

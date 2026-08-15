@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { href } from '../lib/router';
-import { useAppState } from '../state/AppState';
-import { systemSnapshot } from '../lib/selectors';
 import { MARKET_NODES } from '../data/genomes';
 import { useSelectedNode } from '../state/selection';
 import { useAuth } from '../auth/AuthProvider';
+import { useDashboard } from '../state/DashboardData';
+import { summarize } from '../lib/dashboard';
 import DraftingRoomPanel from './DraftingRoomPanel';
 
 const NAV: { to: string; num: string; label: string }[] = [
@@ -21,12 +21,25 @@ const NAV: { to: string; num: string; label: string }[] = [
   { to: '/control/settings', num: '10', label: 'SETTINGS' },
 ];
 
+/** Status-strip cell. Renders the server's number, or an explicit placeholder
+ *  while the server has not answered — never a stale or invented value. */
+function Stat({ value, children, warn = false }: { value: number | string | null; children: React.ReactNode; warn?: boolean }) {
+  return (
+    <span className={warn ? 'pressure pressure--high' : undefined}>
+      <strong>{value ?? '—'}</strong> {children}
+    </span>
+  );
+}
+
 export default function Shell({ route, children }: { route: string; children: React.ReactNode }) {
-  const { state } = useAppState();
   const { user, logout } = useAuth();
-  const snap = systemSnapshot(state);
+  const { state: dash } = useDashboard();
   const { nodeId, setNodeId } = useSelectedNode();
   const [navOpen, setNavOpen] = useState(false);
+
+  const data = dash.status === 'ok' ? dash.data : null;
+  const summary = data ? summarize(data) : null;
+  const pressure = data?.resourcePressure ?? null;
 
   return (
     <div className="shell">
@@ -61,7 +74,8 @@ export default function Shell({ route, children }: { route: string; children: Re
           </select>
         </div>
         <div className="topbar-status" aria-label="System status">
-          <span className="status-dot" aria-hidden="true" /> LIVE DEMO STATE
+          <span className="status-dot" aria-hidden="true" />{' '}
+          {dash.status === 'ok' ? 'SERVER STATE' : dash.status === 'error' ? 'SERVER UNREACHABLE' : 'READING…'}
         </div>
         <div className="topbar-account">
           <span className="topbar-user">{user?.email ?? '—'}</span>
@@ -72,14 +86,33 @@ export default function Shell({ route, children }: { route: string; children: Re
       </header>
 
       <div className="status-strip" role="status">
-        <span><strong>{snap.activeOpportunities}</strong> active opportunities</span>
-        <span><strong>{snap.activeMissions}</strong> active missions</span>
-        <span><strong>{snap.pendingVerification}</strong> pending verification</span>
-        <span><strong>{snap.genomeCount}</strong> company genomes</span>
-        <span><strong>{snap.activeNodeCount}</strong>/{snap.totalNodeCount} nodes active/scaling</span>
-        <span className={snap.resourcePressure > 0.85 ? 'pressure pressure--high' : 'pressure'}>
-          resource pressure <strong>{Math.round(snap.resourcePressure * 100)}%</strong> ({snap.tightestResource})
-        </span>
+        {dash.status === 'error' ? (
+          <span className="pressure pressure--high">
+            status unavailable — {dash.error}. No number is shown rather than a number we cannot back.
+          </span>
+        ) : (
+          <>
+            <Stat value={summary?.rankedOpportunities ?? null}>ranked opportunities</Stat>
+            <Stat value={summary?.totalEvidence ?? null}>evidence records</Stat>
+            <Stat value={summary?.pipeline.find((p) => p.state === 'RECEIPTED')?.count ?? null}>
+              pending verification
+            </Stat>
+            <Stat value={data?.genomeCount ?? null}>company genomes</Stat>
+            <span>
+              <strong>{data ? data.nodes.activeOrScaling : '—'}</strong>
+              {data ? `/${data.nodes.total}` : ''} nodes active/scaling
+            </span>
+            {pressure ? (
+              <span className={pressure.ratio > 0.85 ? 'pressure pressure--high' : 'pressure'}>
+                resource pressure <strong>{Math.round(pressure.ratio * 100)}%</strong> ({pressure.resourceType})
+              </span>
+            ) : (
+              <span className="pressure">
+                resource pressure <strong>—</strong> (no pool with capacity)
+              </span>
+            )}
+          </>
+        )}
       </div>
 
       <div className="shell-body">

@@ -10,6 +10,9 @@ interface AuthState {
   /** True while we are still asking the server who we are on first paint. */
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  /** Creates the organisation and signs the founder straight in — the server
+   *  returns a session, so there is no second credential entry. */
+  signup: (organisationName: string, email: string, password: string) => Promise<{ endsAt: string; days: number }>;
   logout: () => void;
 }
 
@@ -53,6 +56,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(session.actor));
   }, []);
 
+  const signup = useCallback(async (organisationName: string, email: string, password: string) => {
+    const session = await api.auth.signup({ organisationName, email, password });
+    tokenStore.set(session.token);
+    setUser(session.actor);
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(session.actor));
+    return session.trial;
+  }, []);
+
   const logout = useCallback(() => {
     tokenStore.clear();
     setUser(null);
@@ -60,8 +71,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, loading, login, logout }),
-    [user, loading, login, logout],
+    () => ({ user, loading, login, signup, logout }),
+    [user, loading, login, signup, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

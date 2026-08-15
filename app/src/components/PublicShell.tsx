@@ -5,6 +5,7 @@ import { useAuth } from "../auth/AuthProvider";
 const NAV: { to: string; label: string }[] = [
   { to: "/how-it-works", label: "How it works" },
   { to: "/proof", label: "Proof" },
+  { to: "/pricing", label: "Pricing" },
   { to: "/founding-access", label: "Founding access" },
   { to: "/trust", label: "Trust" },
 ];
@@ -30,7 +31,7 @@ export default function PublicShell({
             ◧
           </span>
           <span className="pub-brand-name">FABLE-5</span>
-          <span className="pub-brand-sub">THE AI COMPANY OPERATING SYSTEM</span>
+          <span className="pub-brand-sub">THE GOVERNANCE LAYER FOR AI-NATIVE COMPANIES</span>
         </a>
 
         <button
@@ -77,14 +78,16 @@ export default function PublicShell({
             <div className="pub-foot-brand">
               <span className="pub-mark" aria-hidden="true">◧</span> FABLE-5
             </div>
-            <p className="pub-foot-strapline">The operating system for AI-native companies. Built by a founder, for founders.</p>
+            <p className="pub-foot-strapline">The governance layer for AI-native companies. Built by a founder, for founders.</p>
           </div>
           <nav aria-label="Footer">
             <div className="pub-foot-head">NAVIGATE</div>
             <a href={href("/how-it-works")}>How it works</a>
             <a href={href("/proof")}>Proof</a>
+            <a href={href("/pricing")}>Pricing</a>
             <a href={href("/founding-access")}>Founding access</a>
             <a href={href("/trust")}>Trust</a>
+            <a href={href("/signup")}>Start free trial</a>
             <a href={href("/sign-in")}>Sign in</a>
           </nav>
           <div>
@@ -122,6 +125,10 @@ export default function PublicShell({
         <div className="pub-foot-fine">
           <span>WE EVOLVE, NEVER DELETE.</span>
           <span>No testimonials, certifications, or production metrics are claimed on this site.</span>
+          <span>
+            An independent product of Empire-1 — not affiliated with or endorsed by any AI vendor.{" "}
+            <a className="pub-foot-link" href={href("/trust")}>Attribution</a>
+          </span>
         </div>
       </footer>
     </div>

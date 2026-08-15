@@ -535,8 +535,22 @@
   font-size: clamp(30px, 4.6vw, 52px);
   line-height: 1.04;
   letter-spacing: -0.02em;
-  margin: 0 0 30px;
+  margin: 0 0 20px;
   max-width: 22ch;
+}
+
+/* The spec line under the closing title: states what the system is in one
+   breath, so the category claim above it is immediately substantiated. */
+.pub-final-spec {
+  font-family: var(--font-mono);
+  font-size: clamp(12px, 1.5vw, 14px);
+  line-height: 1.7;
+  letter-spacing: 0.02em;
+  color: var(--pub-ink);
+  max-width: 62ch;
+  margin: 0 0 22px;
+  padding-left: 14px;
+  border-left: 2px solid var(--pub-gold, #d4af37);
 }
 
 /* ── page head for sub-pages ───────────────────────────────────────── */
@@ -655,6 +669,14 @@
   font-size: 10.5px;
   letter-spacing: 0.08em;
   color: var(--pub-ink-faint);
+}
+.pub-foot-link {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.pub-foot-link:hover {
+  color: var(--pub-ink);
 }
 
 /* ── control-plane redesign (PublicHome) ───────────────────────────── */
@@ -1581,4 +1603,87 @@
     transition: none !important;
     animation: none !important;
   }
+}
+
+/* ── pricing ───────────────────────────────────────────────────────── */
+.pub-billing-toggle {
+  display: inline-flex;
+  border: 1px solid var(--pub-line);
+  margin: 0 0 28px;
+}
+.pub-toggle {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: transparent;
+  color: var(--pub-ink-faint);
+  border: 0;
+  padding: 10px 16px;
+  cursor: pointer;
+}
+.pub-toggle--on {
+  background: var(--pub-gold);
+  color: var(--pub-gold-ink);
+}
+
+.pub-grid--plans {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 16px;
+  align-items: stretch;
+}
+.pub-plan {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pub-plan-name {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--pub-gold);
+  margin: 0;
+}
+.pub-plan-price {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.pub-plan-amount {
+  font-size: clamp(26px, 3vw, 34px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.pub-plan-per {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--pub-ink-faint);
+}
+.pub-plan-note {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  line-height: 1.6;
+  color: var(--pub-ink-faint);
+}
+.pub-plan-list {
+  list-style: none;
+  margin: 6px 0 auto;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.pub-plan-list li::before {
+  content: "· ";
+  color: var(--pub-gold);
+}
+.pub-plan .pub-btn {
+  margin-top: 14px;
+  text-align: center;
+}
+.pub-plan--custom {
+  border-style: dashed;
 }

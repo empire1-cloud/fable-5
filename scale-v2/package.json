@@ -10,13 +10,16 @@
     "test": "node --test test/*.test.js",
     "migrate": "node scripts/migrate.js",
     "bootstrap": "node scripts/bootstrap-admin.js",
-    "check": "node --check src/server.js"
+    "seed:demo-genome": "node scripts/seed-demo-genome.js",
+    "check": "node --check src/server.js",
+    "start:deploy": "node scripts/migrate.js && node src/server.js"
   },
   "dependencies": {
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "pg": "^8.22.0"
+    "pg": "^8.22.0",
+    "stripe": "^22.5.0"
   },
   "engines": {
     "node": ">=22"
