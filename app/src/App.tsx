@@ -1,4 +1,5 @@
 import React from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { useHashRoute, parseRoute } from './lib/router';
 import { AppStateProvider } from './state/AppState';
 import { AuthProvider } from './auth/AuthProvider';
@@ -107,6 +108,7 @@ export default function App() {
             </DashboardProvider>
           </RequireAuth>
         )}
+        <Analytics />
       </AppStateProvider>
     </AuthProvider>
   );
