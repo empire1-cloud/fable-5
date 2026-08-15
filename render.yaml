@@ -10,11 +10,19 @@
 # counterpart on the front end: after the first deploy, set VITE_API_BASE in
 # Vercel to this service's URL and redeploy the front end. See DEPLOY.md.
 
+# Region is pinned explicitly on BOTH the database and the service, rather than
+# left to Render's Oregon default — where records live should be a decision, not
+# an accident. Ohio: the founder and the first customers are in the US.
+#
+# Revisit the day a European customer is real; an EU buyer of governance tooling
+# will ask where their records sit. Pin it before the first customer either way,
+# because moving a live database is painful.
 databases:
   - name: fable5-db
     databaseName: fable5
     plan: basic-256mb
     postgresMajorVersion: "16"
+    region: ohio
 
 services:
   - type: web
@@ -23,6 +31,9 @@ services:
     dockerfilePath: ./scale-v2/Dockerfile
     dockerContext: ./scale-v2
     plan: starter
+    # Must match the database's region, or every query crosses a continent and
+    # any residency claim is false anyway.
+    region: ohio
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV

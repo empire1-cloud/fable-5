@@ -215,6 +215,61 @@ Stripe CLI:
 stripe listen --forward-to localhost:3001/api/billing/webhook
 ```
 
+### Payment methods — configured in Stripe, not in code
+
+`createCheckoutSession` deliberately does **not** set `payment_method_types`.
+With it unset, Stripe Checkout uses the automatic payment methods enabled in
+your Dashboard (*Settings → Payment methods*). Turning SEPA Direct Debit on
+therefore needs no code change and no deploy.
+
+That is a real decision with real consequences, so it is written down rather
+than left implicit:
+
+- **What customers can actually pay with is a Dashboard setting.** If card is
+  the only method enabled, card is the only method offered — the code will not
+  tell you.
+- **Subscriptions narrow the set.** These are recurring charges, so one-time
+  methods (most BNPL, many wallets) will not appear regardless of the toggle.
+  In practice: **card**, plus **SEPA Direct Debit** where enabled and the
+  customer is in the SEPA zone.
+- **Currency is worth a deliberate decision.** The live Stripe prices are in
+  **EUR** (see the catalog table above), which was inherited from euro figures
+  in demo fixture data — not from a decision about who is being sold to. If the
+  first customers are American, USD prices are the ones to create. A Price's
+  currency cannot be edited in Stripe: it requires new Prices and archiving the
+  old ones, plus changing `CURRENCY` in `src/domain/plans.js`. Cheap now, and
+  it must be settled before the first real charge.
+- **SEPA Direct Debit** only matters if selling into the SEPA zone. Skip it for
+  a US buyer; card is what they expect.
+- **A brand-new Stripe account has a limited set until activation completes.**
+  Check the Dashboard before assuming a method is live.
+
+If you would rather pin the list in code — auditable, but a deploy is needed to
+add a method — set `payment_method_types: ["card", "sepa_debit"]` on the
+session in `src/billing.js`.
+
+### Data residency
+
+Both configs pin the region **explicitly** — Fly `iad` (US East), Render `ohio`
+for the service *and* its database — rather than accepting a provider default.
+Where customer records live should be a decision, not an accident.
+
+US East because the founder and the first customers are in the United States.
+
+**Revisit the day a European customer is real, not before.** An EU buyer of
+governance tooling will ask where their records sit, and the answer matters to
+them; but choosing a region for a hypothetical buyer while the actual ones are
+elsewhere is the wrong trade. (The DACH/VAT genome in this repository is demo
+fixture content. It is not a go-to-market plan and should not be read as one.)
+
+Pin the region **before the first customer** either way. Moving a database with
+live tenants is painful; moving an empty one is a redeploy. On Fly the Postgres
+volume must be created in the same region as the app:
+
+```bash
+fly postgres create --name fable5-db --region iad
+```
+
 ### Guards you should expect
 
 | Refusal | Meaning |

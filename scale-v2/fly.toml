@@ -8,6 +8,19 @@
 # the two URLs this app needs (admin for migrations, fable5_app for runtime).
 
 app = "fable5-control-plane"
+
+# US East. The founder and the first customers are in the United States, so
+# records live where the buyers are.
+#
+# This is a data-residency decision, not a latency one, and it is worth
+# revisiting the day a European customer is real rather than hypothetical — an
+# EU buyer of governance tooling will ask where their records sit. (The DACH
+# genome in this repo is demo fixture content, not a go-to-market plan; do not
+# read strategy out of it.)
+#
+# Change this BEFORE the first customer either way. Moving a database with live
+# tenants is painful; moving an empty one is a redeploy, and the Postgres
+# volume must be created in the same region — see DEPLOY.md.
 primary_region = "iad"
 
 [build]
