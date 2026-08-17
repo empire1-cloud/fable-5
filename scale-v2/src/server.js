@@ -491,6 +491,13 @@ app.post("/api/intent-tokens/:id/revoke", protect, async (req, res, next) => {
 async function spendVerdict(req, res, next) {
   try {
     const { tokenId, request } = req.body ?? {};
+    if (!request?.idempotencyKey) {
+      return res.status(400).json({
+        error: "REFUSED",
+        code: "IDEMPOTENCY_KEY_REQUIRED",
+        reason: "Every economic action requires a stable idempotencyKey before authorization."
+      });
+    }
     const token = tokenId ? await loadIntentTokenForSpend(req.actor, tokenId) : null;
     const scopedRequest = { ...request, tenantId: req.actor.tenantId };
     const verdict = evaluateIntentToken(token, scopedRequest);
