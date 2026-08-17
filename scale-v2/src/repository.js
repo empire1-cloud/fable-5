@@ -612,7 +612,8 @@ export async function loadIntentTokenForSpend(actor, tokenId) {
       currency: row.currency,
       expiresAt: row.expires_at,
       environment: row.environment,
-      revoked: row.revoked_at != null
+      revoked: row.revoked_at != null,
+      approvedBy: row.approved_by
     };
   });
 }
