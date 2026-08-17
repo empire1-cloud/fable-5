@@ -65,6 +65,15 @@ services:
       - key: SESSION_TTL_HOURS
         value: "12"
 
+      # Receipt Integrity v1 fails production startup closed without an
+      # out-of-repository Ed25519 private key and a versioned key identifier.
+      # Generate these with `npm run receipts:keygen`; store only the private
+      # value here in Render's secret environment, never in Git.
+      - key: RECEIPT_SIGNING_PRIVATE_KEY_B64
+        sync: false
+      - key: RECEIPT_SIGNING_KEY_ID
+        sync: false
+
       # Founder account created by `npm run bootstrap`. Never committed.
       - key: BOOTSTRAP_TENANT_NAME
         sync: false
