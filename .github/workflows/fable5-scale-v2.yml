@@ -33,8 +33,11 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      DATABASE_URL: postgresql://fable5:fable5-ci-password@127.0.0.1:5432/fable5
+      # Admin credentials are used only for migrations/bootstrap. The running
+      # application and tests use fable5_app so FORCE RLS is actually exercised.
       DATABASE_ADMIN_URL: postgresql://fable5:fable5-ci-password@127.0.0.1:5432/fable5
+      DATABASE_URL: postgresql://fable5_app:fable5-app-ci-password@127.0.0.1:5432/fable5
+      APP_DB_PASSWORD: fable5-app-ci-password
       BOOTSTRAP_TENANT_NAME: FABLE-5 CI
       BOOTSTRAP_ADMIN_EMAIL: admin-ci@empire1.invalid
       BOOTSTRAP_ADMIN_PASSWORD: CI-only-password-113!
