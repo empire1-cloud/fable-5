@@ -236,11 +236,11 @@ test("intent tokens: issue → list → check → revoke → refused", async () 
 
   const refused = await req("POST", "/api/intent-tokens/check", {
     token,
-    body: { tokenId, request: { action: "deploy", vendorOrSystem: "stripe-test", amount: 20, currency: "USD", environment: "sandbox" } }
+    body: { tokenId, request: { action: "deploy", vendorOrSystem: "stripe-test", amount: 20, currency: "USD", environment: "sandbox", idempotencyKey: `ci-revoked-${tokenId}` } }
   });
-  assert.equal(refused.status, 403);
+  assert.equal(refused.status, 503);
   assert.equal(refused.body.allowed, false);
-  assert.equal(refused.body.code, "TOKEN_REVOKED");
+  assert.equal(refused.body.code, "ECONOMIC_TRUTH_PENDING");
 });
 
 test("opportunities: list is ranked by the server", async () => {
