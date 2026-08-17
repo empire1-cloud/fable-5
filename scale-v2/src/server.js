@@ -14,7 +14,6 @@ import {
   listEvidence,
   getEvidence,
   createEvidence,
-  addReceipt,
   addVerification,
   addMeasurement,
   listOpportunities,
@@ -39,6 +38,13 @@ import {
   listMarketNodes,
   listResourcePools
 } from "./repository.js";
+import {
+  assertReceiptIntegrityReady,
+  currentReceiptKey,
+  createSignedReceipt,
+  verifyReceipt,
+  verifyReceiptChain,
+} from "./receipt-integrity.js";
 import { evaluateIntentToken } from "./domain/spend.js";
 import { EvidenceTransitionError } from "./domain/evidence.js";
 import { createOrganisation } from "./signup.js";
@@ -102,8 +108,24 @@ app.get("/api/health", async (_req, res, next) => {
       service: "fable5-control-plane",
       architecture: "rev-2.0",
       databaseTime: db.database_time,
-      moneyExecutionDefault: false
+      moneyExecutionDefault: false,
+      receiptIntegrity: {
+        algorithm: currentReceiptKey().algorithm,
+        keyId: currentReceiptKey().key_id,
+        fingerprint: currentReceiptKey().fingerprint,
+        developmentOnly: currentReceiptKey().development_only,
+      },
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Public verification key metadata contains no secret. Enterprise verifiers
+// can pin this fingerprint and independently validate exported proof bundles.
+app.get("/api/receipt-keys/current", (_req, res, next) => {
+  try {
+    res.json(currentReceiptKey());
   } catch (error) {
     next(error);
   }
@@ -391,7 +413,31 @@ app.post("/api/evidence", protect, async (req, res, next) => {
 
 app.post("/api/evidence/:id/receipts", protect, async (req, res, next) => {
   try {
-    res.status(201).json(await addReceipt(req.actor, req.params.id, req.body ?? {}));
+    const receipt = await createSignedReceipt(req.actor, req.params.id, req.body ?? {}, {
+      correlationId: req.correlationId,
+    });
+    const evidence = await getEvidence(req.actor, req.params.id);
+    res.status(201).json({
+      ...evidence,
+      created_receipt_id: receipt.id,
+      receipt_integrity: receipt.integrity,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/receipts/verify-chain", requireAuth(), async (req, res, next) => {
+  try {
+    res.json(await verifyReceiptChain(req.actor));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/receipts/:id/verify", requireAuth(), async (req, res, next) => {
+  try {
+    res.json(await verifyReceipt(req.actor, req.params.id));
   } catch (error) {
     next(error);
   }
@@ -551,6 +597,7 @@ app.use((error, req, res, _next) => {
 });
 
 async function start() {
+  const receiptKey = assertReceiptIntegrityReady();
   await healthcheck();
   app.listen(port, () => {
     console.log(JSON.stringify({
@@ -559,7 +606,13 @@ async function start() {
       port,
       architecture: "rev-2.0",
       engines: ENGINE_REGISTRY.length,
-      outboundMoneyDefault: false
+      outboundMoneyDefault: false,
+      receiptIntegrity: {
+        algorithm: receiptKey.algorithm,
+        keyId: receiptKey.key_id,
+        fingerprint: receiptKey.fingerprint,
+        developmentOnly: receiptKey.development_only,
+      },
     }));
   });
 }
