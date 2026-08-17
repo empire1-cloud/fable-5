@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { timingSafeEqual } from "node:crypto";
 import { ENGINE_REGISTRY, getEngine } from "./engine-registry.js";
 import { requireAuth, login, sessionExpiry, issueSession } from "./auth.js";
 import { healthcheck, pool } from "./db.js";
@@ -519,7 +520,7 @@ app.post("/api/internal/economic-actions/authorize", async (req, res, next) => {
     const expected = String(process.env.FABLE5_ECONOMIC_SERVICE_KEY ?? "");
     const supplied = String(req.headers["x-empire-service-key"] ?? "");
     if (!expected || supplied.length !== expected.length ||
-        !crypto.timingSafeEqual(Buffer.from(supplied), Buffer.from(expected))) {
+        !timingSafeEqual(Buffer.from(supplied), Buffer.from(expected))) {
       return res.status(401).json({ error: "REFUSED", reason: "Invalid Empire service credentials" });
     }
     const { tenantId, tokenId, request } = req.body ?? {};
