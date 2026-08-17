@@ -34,6 +34,7 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgresql://fable5:fable5-ci-password@127.0.0.1:5432/fable5
+      DATABASE_ADMIN_URL: postgresql://fable5:fable5-ci-password@127.0.0.1:5432/fable5
       BOOTSTRAP_ADMIN_EMAIL: admin-ci@empire1.invalid
       BOOTSTRAP_ADMIN_PASSWORD: CI-only-password-113!
       SESSION_SECRET: CI-only-session-secret-that-is-more-than-32-bytes
