@@ -63,6 +63,18 @@ export async function queueIntentVerdict(actor, token, request, verdict, transpo
 
 async function deliverOutboxRow(actor, row, context, transport = fetch) {
   try {
+    const coverageSurfaces = [
+      "fable.intent.authorization",
+      ...((row.payload.evidence && row.payload.evidence.coverage_surfaces) || []),
+    ];
+    for (const surfaceId of [...new Set(coverageSurfaces)]) {
+      await call("/api/economic-truth/coverage/heartbeat", {
+        surface_id: surfaceId,
+        healthy: true,
+        detail: { action_id: actionId, event_key: row.event_key },
+      }, transport);
+    }
+
     await withTenant(actor.tenantId, (client) => client.query(
       `UPDATE economic_truth_outbox SET state='sending', attempts=attempts+1, updated_at=now() WHERE id=$1`,
       [row.id]
