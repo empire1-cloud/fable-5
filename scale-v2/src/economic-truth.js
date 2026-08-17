@@ -13,9 +13,10 @@ export function buildEconomicTruthProposal(actor, token, request, eventKey) {
     policy_id: request.policyId || process.env.FABLE5_POLICY_ID || "fable5-intent-token-policy-v1",
     intent_token_id: token?.id || null,
     idempotency_key: eventKey,
-    target: { vendor_or_system: request.vendorOrSystem },
+    target: { vendor_or_system: request.vendorOrSystem, ...(request.target || {}) },
     economic_value: { amount: String(request.amount), currency: request.currency },
     evidence: {
+      ...(request.evidence || {}),
       source: "fable-5",
       environment: request.environment,
       token_scope: token ? {
