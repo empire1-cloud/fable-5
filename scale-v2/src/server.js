@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { timingSafeEqual } from "node:crypto";
 import { ENGINE_REGISTRY, getEngine } from "./engine-registry.js";
 import { requireAuth, login, sessionExpiry, issueSession } from "./auth.js";
 import { healthcheck, pool } from "./db.js";
@@ -40,6 +41,7 @@ import {
   listResourcePools
 } from "./repository.js";
 import { evaluateIntentToken } from "./domain/spend.js";
+import { queueIntentVerdict, flushEconomicTruthOutbox } from "./economic-truth.js";
 import { EvidenceTransitionError } from "./domain/evidence.js";
 import { createOrganisation } from "./signup.js";
 import { subscriptionState, requireWriteAccess, usageFor } from "./subscription.js";
@@ -490,9 +492,21 @@ app.post("/api/intent-tokens/:id/revoke", protect, async (req, res, next) => {
 async function spendVerdict(req, res, next) {
   try {
     const { tokenId, request } = req.body ?? {};
+    if (!request?.idempotencyKey) {
+      return res.status(400).json({
+        error: "REFUSED",
+        code: "IDEMPOTENCY_KEY_REQUIRED",
+        reason: "Every economic action requires a stable idempotencyKey before authorization."
+      });
+    }
     const token = tokenId ? await loadIntentTokenForSpend(req.actor, tokenId) : null;
-    const verdict = evaluateIntentToken(token, { ...request, tenantId: req.actor.tenantId });
-    res.status(verdict.allowed ? 200 : 403).json(verdict);
+    const scopedRequest = { ...request, tenantId: req.actor.tenantId };
+    const verdict = evaluateIntentToken(token, scopedRequest);
+    const receiptedVerdict = await queueIntentVerdict(req.actor, token, scopedRequest, verdict);
+    const status = receiptedVerdict.code === "ECONOMIC_TRUTH_PENDING"
+      ? 503
+      : (receiptedVerdict.allowed ? 200 : 403);
+    res.status(status).json(receiptedVerdict);
   } catch (error) {
     next(error);
   }
@@ -500,6 +514,40 @@ async function spendVerdict(req, res, next) {
 
 app.post("/api/intent-tokens/check", protect, spendVerdict);
 app.post("/api/spend/verdict", protect, spendVerdict);
+
+app.post("/api/internal/economic-actions/authorize", async (req, res, next) => {
+  try {
+    const expected = String(process.env.FABLE5_ECONOMIC_SERVICE_KEY ?? "");
+    const supplied = String(req.headers["x-empire-service-key"] ?? "");
+    if (!expected || supplied.length !== expected.length ||
+        !timingSafeEqual(Buffer.from(supplied), Buffer.from(expected))) {
+      return res.status(401).json({ error: "REFUSED", reason: "Invalid Empire service credentials" });
+    }
+    const { tenantId, tokenId, request } = req.body ?? {};
+    if (!tenantId || !tokenId || !request?.idempotencyKey) {
+      return res.status(400).json({ error: "REFUSED", reason: "tenantId, tokenId, and request.idempotencyKey are required" });
+    }
+    const actor = { tenantId, userId: "00000000-0000-0000-0000-000000000000", role: "SERVICE" };
+    const token = await loadIntentTokenForSpend(actor, tokenId);
+    if (token?.approvedBy) actor.userId = token.approvedBy;
+    const scopedRequest = { ...request, tenantId };
+    const verdict = evaluateIntentToken(token, scopedRequest);
+    const receiptedVerdict = await queueIntentVerdict(actor, token, scopedRequest, verdict);
+    const status = receiptedVerdict.code === "ECONOMIC_TRUTH_PENDING"
+      ? 503
+      : (receiptedVerdict.allowed ? 200 : 403);
+    res.status(status).json(receiptedVerdict);
+  } catch (error) {
+    next(error);
+  }
+});
+app.post("/api/economic-truth/outbox/flush", protect, async (req, res, next) => {
+  try {
+    res.json(await flushEconomicTruthOutbox(req.actor));
+  } catch (error) {
+    next(error);
+  }
+});
 
 /* ── founding-access waitlist (public submit, founder-only read) ────── */
 app.post("/api/founding-access/waitlist", async (req, res, next) => {

@@ -223,11 +223,12 @@ test("intent tokens: issue → list → check → revoke → refused", async () 
 
   const verdict = await req("POST", "/api/intent-tokens/check", {
     token,
-    body: { tokenId, request: { action: "deploy", vendorOrSystem: "stripe-test", amount: 20, currency: "USD", environment: "sandbox" } }
+    body: { tokenId, request: { action: "deploy", vendorOrSystem: "stripe-test", amount: 20, currency: "USD", environment: "sandbox", idempotencyKey: `ci-authorize-${tokenId}` } }
   });
-  assert.equal(verdict.status, 200);
-  assert.equal(verdict.body.allowed, true);
-  assert.equal(verdict.body.executed, false, "no silent execution");
+  assert.equal(verdict.status, 503);
+  assert.equal(verdict.body.allowed, false);
+  assert.equal(verdict.body.code, "ECONOMIC_TRUTH_PENDING");
+  assert.equal(verdict.body.executed, false, "no execution without the central receipt");
 
   const revoked = await req("POST", `/api/intent-tokens/${tokenId}/revoke`, { token });
   assert.equal(revoked.status, 200);
@@ -235,11 +236,11 @@ test("intent tokens: issue → list → check → revoke → refused", async () 
 
   const refused = await req("POST", "/api/intent-tokens/check", {
     token,
-    body: { tokenId, request: { action: "deploy", vendorOrSystem: "stripe-test", amount: 20, currency: "USD", environment: "sandbox" } }
+    body: { tokenId, request: { action: "deploy", vendorOrSystem: "stripe-test", amount: 20, currency: "USD", environment: "sandbox", idempotencyKey: `ci-revoked-${tokenId}` } }
   });
-  assert.equal(refused.status, 403);
+  assert.equal(refused.status, 503);
   assert.equal(refused.body.allowed, false);
-  assert.equal(refused.body.code, "TOKEN_REVOKED");
+  assert.equal(refused.body.code, "ECONOMIC_TRUTH_PENDING");
 });
 
 test("opportunities: list is ranked by the server", async () => {

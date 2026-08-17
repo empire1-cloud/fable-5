@@ -18,6 +18,31 @@ permissions:
 jobs:
   domain-gate:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: fable5
+          POSTGRES_PASSWORD: fable5-ci-password
+          POSTGRES_DB: fable5
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fable5 -d fable5"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # Admin credentials are used only for migrations/bootstrap. The running
+      # application and tests use fable5_app so FORCE RLS is actually exercised.
+      DATABASE_ADMIN_URL: postgresql://fable5:fable5-ci-password@127.0.0.1:5432/fable5
+      DATABASE_URL: postgresql://fable5_app:fable5-app-ci-password@127.0.0.1:5432/fable5
+      APP_DB_PASSWORD: fable5-app-ci-password
+      BOOTSTRAP_TENANT_NAME: FABLE-5 CI
+      BOOTSTRAP_ADMIN_EMAIL: admin-ci@empire1.invalid
+      BOOTSTRAP_ADMIN_PASSWORD: CI-only-password-113!
+      SESSION_SECRET: CI-only-session-secret-that-is-more-than-32-bytes
+      NODE_ENV: test
     defaults:
       run:
         working-directory: scale-v2
@@ -30,4 +55,6 @@ jobs:
           cache-dependency-path: scale-v2/package.json
       - run: npm install --ignore-scripts
       - run: npm run check
+      - run: npm run migrate
+      - run: npm run bootstrap
       - run: npm test
