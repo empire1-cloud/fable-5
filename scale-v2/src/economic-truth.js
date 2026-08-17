@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { pool, withTenant } from "./db.js";
+import { loadIntentTokenForSpend } from "./repository.js";
+import { evaluateIntentToken } from "./domain/spend.js";
 
 const baseUrl = () => String(process.env.ECONOMIC_TRUTH_API_URL ?? "").replace(/\/$/, "");
 const apiKey = () => String(process.env.ECONOMIC_TRUTH_INGEST_KEY ?? "");
@@ -138,19 +140,15 @@ export async function flushEconomicTruthOutbox(actor, transport = fetch) {
   const results = [];
   for (const row of rows) {
     const tokenId = row.payload.intent_token_id;
-    const tokenResult = tokenId
-      ? await withTenant(actor.tenantId, (client) => client.query(`SELECT * FROM intent_tokens WHERE id=$1`, [tokenId]))
-      : { rows: [] };
-    const token = tokenResult.rows[0] ? {
-      id: tokenResult.rows[0].id,
-      action: tokenResult.rows[0].action,
-      vendorOrSystem: tokenResult.rows[0].vendor_or_system,
-      maxAmount: Number(tokenResult.rows[0].max_amount),
-      currency: tokenResult.rows[0].currency,
-      expiresAt: tokenResult.rows[0].expires_at,
-    } : null;
-    const verdict = token ? { allowed: true, executed: false, code: "AUTHORIZED_VERDICT_ONLY" } :
-      { allowed: false, executed: false, code: "TOKEN_MISSING", reason: "Intent Token no longer exists" };
+    const token = tokenId ? await loadIntentTokenForSpend(actor, tokenId) : null;
+    const verdict = evaluateIntentToken(token, {
+      tenantId: actor.tenantId,
+      action: row.payload.action_type,
+      vendorOrSystem: row.payload.target?.vendor_or_system,
+      amount: row.payload.economic_value?.amount,
+      currency: row.payload.economic_value?.currency,
+      environment: row.payload.evidence?.environment,
+    });
     results.push(await deliverOutboxRow(actor, row, { token, verdict }, transport));
   }
   return { processed: results.length, results };
