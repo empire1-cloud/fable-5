@@ -40,6 +40,7 @@ import {
   listResourcePools
 } from "./repository.js";
 import { evaluateIntentToken } from "./domain/spend.js";
+import { queueIntentVerdict, flushEconomicTruthOutbox } from "./economic-truth.js";
 import { EvidenceTransitionError } from "./domain/evidence.js";
 import { createOrganisation } from "./signup.js";
 import { subscriptionState, requireWriteAccess, usageFor } from "./subscription.js";
@@ -491,8 +492,13 @@ async function spendVerdict(req, res, next) {
   try {
     const { tokenId, request } = req.body ?? {};
     const token = tokenId ? await loadIntentTokenForSpend(req.actor, tokenId) : null;
-    const verdict = evaluateIntentToken(token, { ...request, tenantId: req.actor.tenantId });
-    res.status(verdict.allowed ? 200 : 403).json(verdict);
+    const scopedRequest = { ...request, tenantId: req.actor.tenantId };
+    const verdict = evaluateIntentToken(token, scopedRequest);
+    const receiptedVerdict = await queueIntentVerdict(req.actor, token, scopedRequest, verdict);
+    const status = receiptedVerdict.code === "ECONOMIC_TRUTH_PENDING"
+      ? 503
+      : (receiptedVerdict.allowed ? 200 : 403);
+    res.status(status).json(receiptedVerdict);
   } catch (error) {
     next(error);
   }
@@ -500,6 +506,13 @@ async function spendVerdict(req, res, next) {
 
 app.post("/api/intent-tokens/check", protect, spendVerdict);
 app.post("/api/spend/verdict", protect, spendVerdict);
+app.post("/api/economic-truth/outbox/flush", protect, async (req, res, next) => {
+  try {
+    res.json(await flushEconomicTruthOutbox(req.actor));
+  } catch (error) {
+    next(error);
+  }
+});
 
 /* ── founding-access waitlist (public submit, founder-only read) ────── */
 app.post("/api/founding-access/waitlist", async (req, res, next) => {
